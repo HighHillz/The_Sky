@@ -1,0 +1,123 @@
+* {
+  margin: 0;
+  padding: 0;
+  font-family: "Poppins", sans-serif;
+  box-sizing: border-box;
+  overflow: hidden;
+  font-weight: bold;
+}
+
+section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg,#111,#222,#111);
+}
+
+.star {
+  position: absolute;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #fff,
+              0 0 20px #fff,
+              0 0 40px #fff,
+              0 0 80px #fff;
+  animation: twinkle linear infinite;
+}
+
+.sprinkle {
+  position: absolute;
+  z-index: 60;
+  background: #fff;
+  border-radius: 30%;
+  width: 4px;
+  height: 16px;
+}
+
+@keyframes twinkle {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+h2 {
+  position: absolute;
+  width:100%;
+  font-size: 7vw;
+  text-align: center;
+  z-index: 100;
+  transform: skewY(-7deg);
+  animation: floating 5s ease-in-out infinite;
+  color: #f0cc00;
+}
+
+#version {
+  position: fixed;
+  padding: 0 1vw;
+  z-index: 1000;
+}
+
+#sun {
+  position: fixed;
+  display: none;
+  top:10%;
+  left:80%;
+  width: 10vw;
+  height: 10vw;
+  background: rgb(255, 255, 235);
+  color: black;
+  text-align: center;
+
+  border-radius: 50%;
+  box-shadow: 0 0 200px rgb(255, 255, 235),
+              0 0 160px rgb(255, 255, 235),
+              0 0 120px rgb(255, 255, 235),
+              0 0 80px rgb(255, 255, 235),
+              0 0 40px rgb(255, 255, 235),
+              0 0 20px rgb(255, 255, 235);
+}
+
+#moon {
+  position: fixed;
+  display: none;
+  left:80%;
+  width: 5vw;
+  height: 5vw;
+  background: rgb(220, 220, 220);
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgb(255, 255, 235);
+  z-index: 10;
+}
+
+#year {
+  font-weight: 700;
+  font-size: 3em;
+}
+
+div {
+  width: 100%;
+  z-index:50;
+  background-color: pink;
+  min-height: 100vh;
+  display: none;
+}
+
+@keyframes floating {
+  0%, 100% {
+    transform: skewY(-7deg) translate(0, -10px);
+  }
+  
+  50% {
+    transform: skewY(-7deg) translate(0, 10px);
+  }
+}
