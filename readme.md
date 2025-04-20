@@ -19,6 +19,8 @@ The project can be useful as a desktop wallpaper, which works the best when uplo
 
 ## Future Enhancements
 - Add more sky simulations
+
+### Version 2.1
 - Detect sunset and sunrise for better day/night transitions.
 - Expand to include other time-related phenomena.
 - Interactive wallpaper.
