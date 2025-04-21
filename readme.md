@@ -12,7 +12,11 @@ During the night, there are twinkling tiny stars on a black sky and a white moon
 - Realistic sky simulations.
 
 ## Technologies
+### Languages
 - Javascript (JS)
+
+### Libraries
+No libraries have been used.
 
 ## Usage
 The project can be useful as a desktop wallpaper, which works the best when uploaded and used on lively wallpaper, an app on the windows store.
