@@ -13,7 +13,9 @@ During the night, there are twinkling tiny stars on a black sky and a white moon
 
 ## Technologies
 ### Languages
-- Javascript (JS)
+- JavaScript (JS)
+- HTML
+- CSS
 
 ### Libraries
 No libraries have been used.
