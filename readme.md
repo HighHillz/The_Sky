@@ -1,4 +1,4 @@
-# Day Night Year
+# Day Night Wallpaper
 
 This project explores the concepts of time, including day, night, and year cycles to simulate a live desktop wallpaper. This wallpaper shifts between day and night based to system time, and a big text floating at the center depicting the current year.
 
