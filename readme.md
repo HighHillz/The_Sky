@@ -23,11 +23,5 @@ No libraries have been used.
 ## Usage
 The project can be useful as a desktop wallpaper, which works the best when uploaded and used on lively wallpaper, an app on the windows store.
 
-## Future Enhancements
-- Add more sky simulations
-- Detect sunset and sunrise for better day/night transitions.
-- Expand to include other time-related phenomena.
-- Interactive wallpaper.
-
 ## Version
 2.1
