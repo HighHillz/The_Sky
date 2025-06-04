@@ -5,14 +5,15 @@
   box-sizing: border-box;
   overflow: hidden;
   font-weight: bold;
+  user-select: none;
 }
 
 section {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg,#111,#222,#111);
+  height: 100vh;
+  width: 100vw;
 }
 
 .star {
@@ -24,15 +25,6 @@ section {
               0 0 40px #fff,
               0 0 80px #fff;
   animation: twinkle linear infinite;
-}
-
-.sprinkle {
-  position: absolute;
-  z-index: 60;
-  background: #fff;
-  border-radius: 30%;
-  width: 4px;
-  height: 16px;
 }
 
 @keyframes twinkle {
@@ -61,55 +53,44 @@ h2 {
   color: #f0cc00;
 }
 
-#version {
+#extra {
   position: fixed;
   padding: 0 1vw;
   z-index: 1000;
 }
 
 #sun {
-  position: fixed;
-  display: none;
-  top:10%;
-  left:80%;
-  width: 10vw;
-  height: 10vw;
-  background: rgb(255, 255, 235);
-  color: black;
-  text-align: center;
-
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle at center, #fffde0, #fff6d4);
   border-radius: 50%;
-  box-shadow: 0 0 200px rgb(255, 255, 235),
-              0 0 160px rgb(255, 255, 235),
-              0 0 120px rgb(255, 255, 235),
-              0 0 80px rgb(255, 255, 235),
-              0 0 40px rgb(255, 255, 235),
-              0 0 20px rgb(255, 255, 235);
+  position: absolute;
+  top: 10%;
+  left: 80%;
+  box-shadow:
+    0 0 60px 20px rgba(255, 255, 180, 0.6),
+    0 0 120px 40px rgba(255, 240, 180, 0.4),
+    0 0 160px 60px rgba(255, 220, 150, 0.2);
+  z-index: 2;
+  transition: top 1s linear, left 1s linear;
 }
 
 #moon {
   position: fixed;
   display: none;
-  left:80%;
+  left:85%;
   width: 5vw;
   height: 5vw;
   background: rgb(220, 220, 220);
   border-radius: 50%;
   box-shadow: 0 0 20px rgb(255, 255, 235);
   z-index: 10;
+  text-align: center;
 }
 
 #year {
   font-weight: 700;
   font-size: 3em;
-}
-
-div {
-  width: 100%;
-  z-index:50;
-  background-color: pink;
-  min-height: 100vh;
-  display: none;
 }
 
 @keyframes floating {
@@ -119,5 +100,24 @@ div {
   
   50% {
     transform: skewY(-7deg) translate(0, 10px);
+  }
+}
+
+.shooting-star {
+  position: absolute;
+  width: 2px;
+  height: 100px;
+  background: linear-gradient(-45deg, white, transparent);
+  animation: shoot linear;
+}
+
+@keyframes shoot {
+  0% {
+    transform: translate(50vw, -50vh) rotate(atan2(100vw, 100vh));
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(-50vw, 50vh) rotate(atan2(100vw, 100vh));
+    opacity: 0;
   }
 }

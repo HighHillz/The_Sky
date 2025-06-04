@@ -1,169 +1,146 @@
-//List of functions
-//Check for leap year
-function leapYear(Year) {
-  return Year%4 == 0 && Year%100 != 0 || Year%400 == 0;
-}
-
-function generateRandom(list) {
-  return list[Math.floor(Math.random() * list.length)];
-}
-
-//Draw stars
-function stars(Number) {
-  const count = Number; //Number of stars
-  const section = document.querySelector('section');
-  var i = 0;
-
-  while(i < count) {
-    const star = document.createElement('i');
-    star.classList.add("star");
-
-    //Star position
-    const x = Math.floor(Math.random() * window.innerWidth);
-    const y = Math.floor(Math.random() * window.innerHeight);
-    star.style.left = x+'px';
-    star.style.top = y+'px';
-
-    //Star size
-    const size = Math.random() * 1;
-    star.style.width = 1+size+'px';
-    star.style.height = 1+size+'px';
-
-    //Twinkle animation duration
-    const duration = Math.random() * 3;
-    star.style.animationDuration = 3+duration+'s';
-    star.style.animationDelay = duration+'s';
-
-    section.appendChild(star); //Display star
-    i++;
-  }
-}
-
-function sprinkles(Number) {
-  const count = Number; //Number of sprinkles
-  const section = document.querySelector('#bday');
-  var i = 0;
-
-  while(i < count) {
-    const sprinkle = document.createElement('i');
-    sprinkle.classList.add("sprinkle");
-
-    sprinkle.style.backgroundColor = generateRandom(colours);
-    sprinkle.style.transform = "rotate("+ Math.random()*360 + "deg)";
-
-    //Sprinkle position
-    const x = Math.floor(Math.random() * window.innerWidth);
-    const y = Math.floor(Math.random() * window.innerHeight);
-    sprinkle.style.left = x+'px';
-    sprinkle.style.top = y+'px';
-
-    section.appendChild(sprinkle); //Display sprinkle
-    i++;
-  }
-}
-
-function day() {
-  //Day night transition
-    //Display sun only
-    document.getElementById("sun").style.display = "block";
-    document.getElementById("moon").style.display = "none";
-
-    //Blue sky
-    document.getElementsByTagName('section')[0].style.background = "linear-gradient(135deg,#5bdeff,#99ebff,#5bdeff)";
-
-    document.getElementById("version").style.color = "black";
-
-    //Year text colours
-    document.getElementsByTagName("h2")[0].style.color = "#222";
-    document.getElementsByTagName("h2")[0].style.textShadow = `1px 1px 0 #333, 2px 2px 0 #333, 3px 3px 0 #333, 4px 4px 0 #333, 5px 5px 0 #333, 6px 6px 0 #333, 7px 7px 0 #333, 8px 8px 0 #333, 9px 9px 0 #333, 20px 20px 0 rgba(0,0,0,0.2)`;
-  
-    //Hide stars
-    for(var i = 0; i < countStars; i++) {
-      document.getElementsByTagName('section')[0].getElementsByTagName("i")[i + countSprinkles].style.display = "none";
+class SkyObjects {
+    constructor(section) {
+        this.element = document.createElement('i');
+        this.createObject();
+        this.setPosition();
+        this.setSize();
+        this.setAnimation();
+        section.appendChild(this.element);
     }
 }
 
-function night() {
-  //Show moon only
-  document.getElementById("sun").style.display = "none";
-  document.getElementById("moon").style.display = "block";
-  
-  //Dark sky
-  document.getElementsByTagName('section')[0].style.background = "linear-gradient(135deg,#111,#222,#111)";
+class Star extends SkyObjects {
+    createObject() {
+        this.element.classList.add("star");
+    }
+    setPosition() {
+        const x = Math.floor(Math.random() * window.innerWidth);
+        const y = Math.floor(Math.random() * window.innerHeight);
+        this.element.style.left = x + 'px';
+        this.element.style.top = y + 'px';
+    }
 
-  document.getElementById("version").style.color = "white";
-  
-  //Year text colours
-  document.getElementsByTagName("h2")[0].style.color = "white";
-  document.getElementsByTagName("h2")[0].style.textShadow = `1px 1px 0 #ccc, 2px 2px 0 #ccc, 3px 3px 0 #ccc, 4px 4px 0 #ccc, 5px 5px 0 #ccc, 6px 6px 0 #ccc, 7px 7px 0 #ccc, 8px 8px 0 #ccc, 9px 9px 0 #ccc, 20px 20px 0 rgba(0,0,0,0.2)`;
+    setSize() {
+        const size = Math.random() * 1;
+        this.element.style.width = 1 + size + 'px';
+        this.element.style.height = 1 + size + 'px';
+    }
 
-  //Show stars
-  for(var i = 0; i < countStars; i++) {
-    document.getElementsByTagName('section')[0].getElementsByTagName("i")[i + countSprinkles].style.display = "block";
-  }
+    setAnimation() {
+        const duration = Math.random() * 3;
+        this.element.style.animationDuration = 3 + duration + 's';
+        this.element.style.animationDelay = duration + 's';
+    }
 }
 
-function dayNight(time) {
-  if(time.getHours() < 18 && time.getHours() >= 6) {
-    day();
-  } else {
-    night();
-  }
-  
-  document.getElementById("version").innerHTML = version;
+class ShootingStar extends SkyObjects {
+    createObject() {
+        this.element.classList.add("shooting-star");
+    }
+    setPosition() {
+        const x = Math.random() * window.innerWidth;
+        const y = Math.random() * (window.innerHeight / 2);
+        this.element.style.left = x + 'px';
+        this.element.style.top = y + 'px';
+    }
+    setSize() {
+        const size = Math.random() * 2;
+        this.element.style.width = size + "px";
+        this.element.style.height = size * 50 + "px";
+    }
+    setAnimation() {
+        this.duration = Math.random() * 2 + 3;
+        this.element.style.animationDuration = this.duration + 's';
+        setTimeout(() => {
+            this.element.remove();
+        }, this.duration * 1000);
+    }
 }
 
-function newYear() {
-  document.getElementById("version").innerHTML = version + " (Happy New Year)";
-
-  document.getElementsByTagName("h2")[0].style.color = "gold";
-  document.getElementsByTagName("h2")[0].style.fontSize = "7vw";
-  document.getElementsByTagName("h2")[0].style.textShadow = `1px 1px 0 #ebcf00, 2px 2px 0 #ebcf00, 3px 3px 0 #ebcf00, 4px 4px 0 #ebcf00, 5px 5px 0 #ebcf00, 6px 6px 0 #ebcf00, 7px 7px 0 #ebcf00, 8px 8px 0 #ebcf00, 9px 9px 0 #ebcf00, 20px 20px 0 rgba(0,0,0,0.2)`;
+class Sky {
+    constructor(section, time) {
+        this.section = section;
+        this.hours = time.getHours();
+        this.setSky();
+    }
+    setSky() {
+        if(this.hours < 18 && this.hours >= 6) {
+            this.day();
+        } else {
+            this.night();
+        }
+    }
+    setContentColour(stat_clr, year_clr, shadow_clr) {
+        document.getElementById("extra").style.color = stat_clr;
+        const h2 = document.getElementsByTagName("h2")[0];
+        h2.style.color = year_clr;
+        h2.style.textShadow = `1px 1px 0 ${shadow_clr}, 2px 2px 0 ${shadow_clr}, 3px 3px 0 ${shadow_clr}, 4px 4px 0 ${shadow_clr}, 5px 5px 0 ${shadow_clr}, 6px 6px 0 ${shadow_clr}, 7px 7px 0 ${shadow_clr}, 8px 8px 0 ${shadow_clr}, 9px 9px 0 ${shadow_clr}, 20px 20px 0 rgba(0,0,0,0.2)`;
+    }
+    day() {
+        document.getElementById("sun").style.display = "block";
+        document.getElementById("moon").style.display = "none";
+        this.section.style.background = "linear-gradient(45deg, #87ceeb, #b0e0e6, #f0f8ff)";
+        this.setContentColour("black", "#222", "#333");
+        // Hide shooting stars
+        for (let i = 0; i < this.section.getElementsByTagName("i").length; i++) {
+            this.section.getElementsByTagName("i")[i].style.display = "none";
+        }
+    }
+    night() {
+        document.getElementById("sun").style.display = "none";
+        document.getElementById("moon").style.display = "block";
+        this.section.style.background = "linear-gradient(135deg, #0b0c1e, #090a1a, #060617)";
+        this.setContentColour("white", "#fff", "#ccc");
+        // Show shooting stars
+        for (let i = 0; i < this.section.getElementsByTagName("i").length; i++) {
+            this.section.getElementsByTagName("i")[i].style.display = "block";
+        }
+    }
 }
 
-//Main code
+class WallpaperApp {
+    constructor(section) {
+        this.countStars = 70;
+        this.version = "v 2.2";
+        this.section = document.querySelector(section);
+        this.stars = [];
+        this.init();
+    }
 
-//Write the date
-setInterval(function() {
-  const time = new Date(); //Get current date
-  
-  //Number of days to move the moon accordingly
-  const daysList = [
-    31, //Jan
-    leapYear(time.getFullYear()) ? 29 : 28, //Feb - Non leap year, Leap year
-    31, //Mar
-    30, //Apr
-    31, //May
-    30, //Jun
-    31, //Jul
-    31, //Aug
-    30, //Sep
-    31, //Oct
-    30, //Nov
-    31  //Dec
-  ];
-  
-  //Conditions for custom messages
-  if(time.getMonth() == 0 && time.getDate() == 1) {
-    document.getElementById("year").innerHTML = time.getFullYear();
-    dayNight(time);
-    newYear();
-  } else {
-    document.getElementById("year").innerHTML = time.getFullYear();
-    dayNight(time);
-  }
-  
-  const days = daysList[time.getMonth()];
-  document.getElementById("moon").style.top = (100/days) * time.getDate() + "%";
-  
-}, 100);
+    static leapYear(year) {
+        return year % 4 === 0 && year % 100 !== 0 || year % 400 === 0;
+    }
 
-//Display stars
-const countStars = 100;
-const countSprinkles = 50;
-const colours = ["red","blue","green","white","yellow","orange","purple","cyan"]
+    init() {
+        for (let i = 0; i < this.countStars; i++) {
+            this.stars.push(new Star(this.section));
+        }
+        document.getElementById("version").innerHTML = this.version;
+        this.start();
+    }
 
-const version = "v 2.1";
+    start() {
+        setInterval(() => this.update(), 100);
+    }
 
-stars(countStars); 
-sprinkles(countSprinkles);
+    update() {
+        const time = new Date();
+        this.sky = new Sky(this.section, time);
+        const daysList = [
+            31,
+            WallpaperApp.leapYear(time.getFullYear()) ? 29 : 28,
+            31, 30, 31, 30, 31, 31, 30, 31, 30, 31
+        ];
+        const monthsList = [
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+        ];
+        document.getElementById("year").innerHTML = time.getFullYear();
+        const days = daysList[time.getMonth()];
+        document.getElementById("moon").style.top = (100 / days) * time.getDate() + "%";
+        document.getElementById("date").innerHTML = `${time.getDate()} ${monthsList[time.getMonth()]} ${time.getFullYear()}`;
+        if(Math.random() < 0.05) new ShootingStar(this.section);
+    }
+}
+
+// Start the app
+new WallpaperApp('section');
