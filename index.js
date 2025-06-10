@@ -101,7 +101,6 @@ class Sky {
 class WallpaperApp {
     constructor(section) {
         this.countStars = 70;
-        this.version = "v 2.2";
         this.section = document.querySelector(section);
         this.stars = [];
         this.init();
@@ -115,7 +114,6 @@ class WallpaperApp {
         for (let i = 0; i < this.countStars; i++) {
             this.stars.push(new Star(this.section));
         }
-        document.getElementById("version").innerHTML = this.version;
         this.start();
     }
 
