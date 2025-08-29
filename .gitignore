@@ -1,0 +1,26 @@
+# Node modules
+node_modules/
+
+# Environment
+.env
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Specific JSONs (remove wildcard!)
+config.json
+secrets.json
+
+# Test output
+coverage/
+Test/
