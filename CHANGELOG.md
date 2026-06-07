@@ -6,7 +6,7 @@ All notable changes to this project will be noted here.
 
 ## 3 - Real Weather
 
-## [3.0.0] - 6 Jun 2026
+### [3.0.0] - 6 Jun 2026
 Bringing new wallpaper elements! Now watch the sky change based on the immersive real-world weather. It fetches the weather from the Open-Meteo API and current system location. 
 
 Weather and time settings can be controlled manually using the settings panel, helping in keeping your favourite sky and weather effects.
@@ -27,7 +27,7 @@ Two new sky elements have been added, to bridge the transition between day and n
 
 ## 2 - Day and Night
 
-## [2.2.0] - 4 Jun 2025
+### [2.2.0] - 4 Jun 2025
 The background visuals have been enhanced.
 - Day: A mix of sky blue and white, with a brighter sun
 - Night: Mix of Grey and Black, with a more realistic moon
@@ -35,10 +35,10 @@ The background visuals have been enhanced.
 Shooting stars have been added, which goes randomly from one end to the other during the night.
 Finally, a date stamp caption has been added at the top-left corner, and events have been removed.
 
-## [2.1.0] - 20 Apr 2025
+### [2.1.0] - 20 Apr 2025
 Added certain events such as Birthday and Happy New Year.
 
-## [2.0.0] - 16 Jun 2023
+### [2.0.0] - 16 Jun 2023
 The background becomes more interactive, toggling between day and night skies depending on system clock time.
 It has a floating sun during the day and moon at the night, which changes position based on the day of the month.
 
