@@ -2,6 +2,7 @@
 
 A lightweight and clean wallpaper simulation that displays a floating year centerpiece against a realistic sky background. The sky cycles dynamically between day and night based on the local system clock.
 
+![Version](https://img.shields.io/badge/Latest%20Version-2.2.0-blue.svg)
 ![Status](https://img.shields.io/badge/Status-Deprecated-red.svg)
 
 
