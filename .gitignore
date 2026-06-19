@@ -24,3 +24,16 @@ secrets.json
 # Test output
 coverage/
 Test/
+
+# Python Virtual Environment
+venv/
+.venv/
+env/
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/

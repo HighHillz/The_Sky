@@ -4,6 +4,10 @@ All notable changes to this project will be noted here.
 
 ## 3 - Real Weather
 
+### [3.1.0] - 19 Jun 2026
+Brings native desktop enhancements, sandbox resilience, and visual optimizations. Implements pixel-perfect, DPI-scaled click-through masking utilizing the GTK Cairo API and browser-based bounding boxes, keeping mouse interactions active only on the settings gear. Refactors the core drawing engine from `requestAnimationFrame` to unthrottled timer-based timeouts, ensuring continuous rendering of stars, clouds, and particles even when the wallpaper window is forced to the bottom layer. Integrates an instant, permission-free IP Geolocation lookup (`ipapi.co`) as the primary location method, falling back to standard geolocators and default settings to prevent startup freezes. Enhances star size and opacity for better visibility on high-resolution displays, and decouples shooting stars from weather toggles to ensure they spawn naturally on clear night skies. Finally, wraps local storage calls in `try-catch` blocks to avoid WebKitGTK sandbox crashes, resolves DOM initialization race conditions, and disables the debugging inspector window in production.
+
+
 ### [3.0.0] - 6 Jun 2026
 Bringing new wallpaper elements! Now watch the sky change based on the immersive real-world weather. It fetches the weather from the Open-Meteo API and current system location. 
 

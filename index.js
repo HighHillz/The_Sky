@@ -1,12 +1,36 @@
+// Helper to communicate settings state and exact gear button boundaries with Python backend
+function updateInteractiveRegion(isOpen) {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.set_interactive_mode) {
+        if (isOpen) {
+            window.pywebview.api.set_interactive_mode(true, 0, 0, 0, 0);
+        } else {
+            const btn = document.getElementById("settings-toggle");
+            if (btn) {
+                const rect = btn.getBoundingClientRect();
+                window.pywebview.api.set_interactive_mode(
+                    false,
+                    Math.round(rect.left),
+                    Math.round(rect.top),
+                    Math.round(rect.width),
+                    Math.round(rect.height)
+                );
+            }
+        }
+    }
+}
+
+// Set initial clickable shape as soon as pywebview's JS bridge is ready
+window.addEventListener("pywebviewready", () => {
+    updateInteractiveRegion(false);
+});
+
 // Canvas Star element for the night sky
 class CanvasStar {
-    constructor(w, h) {
-        this.w = w;
-        this.h = h;
-        this.x = Math.random() * w;
-        this.y = Math.random() * h;
-        this.size = Math.random() * 1.2 + 0.4;
-        this.maxOpacity = Math.random() * 0.75 + 0.25;
+    constructor() {
+        this.pctX = Math.random();
+        this.pctY = Math.random();
+        this.size = Math.random() * 1.6 + 0.8; // Larger radius: 0.8px to 2.4px
+        this.maxOpacity = Math.random() * 0.6 + 0.4; // Brighter opacity range: 0.4 to 1.0
         this.opacity = Math.random() * this.maxOpacity;
         this.twinkleSpeed = Math.random() * 0.02 + 0.005;
         this.angle = Math.random() * Math.PI * 2;
@@ -19,11 +43,11 @@ class CanvasStar {
         this.opacity = this.maxOpacity * twinkleVal * nightFactor;
     }
 
-    draw(ctx) {
+    draw(ctx, w, h) {
         if (this.opacity <= 0.01) return;
         ctx.fillStyle = `rgba(255, 255, 255, ${this.opacity})`;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.arc(this.pctX * w, this.pctY * h, this.size, 0, Math.PI * 2);
         ctx.fill();
     }
 }
@@ -186,7 +210,7 @@ class ShootingStarParticle {
     reset() {
         this.x = Math.random() * (this.w * 0.7);
         this.y = Math.random() * (this.h * 0.4);
-        this.length = Math.random() * 90 + 60;
+        this.length = Math.random() * 120 + 80; // Extended length from 60-150px to 80-200px
         this.speed = Math.random() * 14 + 16;
         this.opacity = 1;
         this.angle = Math.PI / 4; // 45 degree angle fall
@@ -209,7 +233,7 @@ class ShootingStarParticle {
         if (this.opacity <= 0) return;
         ctx.save();
         ctx.strokeStyle = `rgba(255, 255, 255, ${this.opacity})`;
-        ctx.lineWidth = 1.6;
+        ctx.lineWidth = 2.2; // Increased from 1.6 to 2.2 for better visual presence
         ctx.beginPath();
         ctx.moveTo(this.x, this.y);
         ctx.lineTo(this.x - Math.cos(this.angle) * this.length, this.y - Math.sin(this.angle) * this.length);
@@ -237,25 +261,8 @@ class WeatherEngine {
     }
 
     resize() {
-        const oldW = this.width;
-        const oldH = this.height;
         this.width = this.canvas.width = window.innerWidth;
         this.height = this.canvas.height = window.innerHeight;
-
-        // Scale star coordinate distributions on screen resize
-        if (this.stars && this.stars.length > 0) {
-            this.stars.forEach(s => {
-                s.w = this.width;
-                s.h = this.height;
-                if (oldW && oldH) {
-                    s.x = (s.x / oldW) * this.width;
-                    s.y = (s.y / oldH) * this.height;
-                } else {
-                    s.x = Math.random() * this.width;
-                    s.y = Math.random() * this.height;
-                }
-            });
-        }
     }
 
     setWeather(weather) {
@@ -283,7 +290,7 @@ class WeatherEngine {
         if (!this.running) return;
         this.update();
         this.draw();
-        requestAnimationFrame(() => this.loop());
+        setTimeout(() => this.loop(), 16);
     }
 
     update() {
@@ -302,9 +309,11 @@ class WeatherEngine {
                     this.clouds.push(new CloudParticle(this.width, this.height, false));
                 }
             }
+        }
 
-            // Spawn shooting stars randomly during the night phase
-            if (this.nightFactor > 0.6 && Math.random() < 0.006 && this.shootingStars.length < 2) {
+        // Spawn shooting stars randomly during the night phase if celestial elements are enabled
+        if (this.app.settings.showCelestial) {
+            if (this.nightFactor > 0.6 && Math.random() < 0.008 && this.shootingStars.length < 2) {
                 this.shootingStars.push(new ShootingStarParticle(this.width, this.height));
             }
         }
@@ -331,8 +340,10 @@ class WeatherEngine {
     draw() {
         this.ctx.clearRect(0, 0, this.width, this.height);
 
+
+
         // Stars are drawn first
-        this.stars.forEach(s => s.draw(this.ctx));
+        this.stars.forEach(s => s.draw(this.ctx, this.width, this.height));
 
         if (!this.app.settings.showWeather) return;
 
@@ -363,6 +374,25 @@ class WeatherAPI {
 
         this.app.settings.updateWeatherStatus("Querying location...");
 
+        try {
+            // First attempt: IP-based geolocation (silent, instant, and handles sandboxed/desktop environments perfectly)
+            const ipGeoUrl = "https://ipapi.co/json/";
+            const geoRes = await fetch(ipGeoUrl);
+            if (geoRes.ok) {
+                const geoData = await geoRes.json();
+                if (geoData.latitude && geoData.longitude) {
+                    const city = geoData.city || "Local";
+                    const country = geoData.country_code ? geoData.country_code.toUpperCase() : "";
+                    const displayName = country ? `${city}, ${country}` : city;
+                    await this.fetchFromMeteo(geoData.latitude, geoData.longitude, displayName);
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn("IP-based geolocation failed, trying browser Geolocation API...", e);
+        }
+
+        // Second attempt: Browser Geolocation API as a fallback
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(
                 async (position) => {
@@ -463,9 +493,9 @@ class SettingsManager {
     }
 
     loadSettings() {
-        const saved = localStorage.getItem("sky_wallpaper_settings");
-        if (saved) {
-            try {
+        try {
+            const saved = localStorage.getItem("sky_wallpaper_settings");
+            if (saved) {
                 const parsed = JSON.parse(saved);
                 this.timeMode = parsed.timeMode ?? this.timeMode;
                 this.weatherMode = parsed.weatherMode ?? this.weatherMode;
@@ -474,23 +504,27 @@ class SettingsManager {
                 this.showCelestial = parsed.showCelestial ?? this.showCelestial;
                 this.showWeather = parsed.showWeather ?? this.showWeather;
                 this.twelveHour = parsed.twelveHour ?? this.twelveHour;
-            } catch (e) {
-                console.error("Settings corrupted. Using defaults.", e);
             }
+        } catch (e) {
+            console.warn("localStorage not available or corrupted. Using defaults.", e);
         }
     }
 
     saveSettings() {
-        const config = {
-            timeMode: this.timeMode,
-            weatherMode: this.weatherMode,
-            fontSelect: this.fontSelect,
-            showClock: this.showClock,
-            showCelestial: this.showCelestial,
-            showWeather: this.showWeather,
-            twelveHour: this.twelveHour
-        };
-        localStorage.setItem("sky_wallpaper_settings", JSON.stringify(config));
+        try {
+            const config = {
+                timeMode: this.timeMode,
+                weatherMode: this.weatherMode,
+                fontSelect: this.fontSelect,
+                showClock: this.showClock,
+                showCelestial: this.showCelestial,
+                showWeather: this.showWeather,
+                twelveHour: this.twelveHour
+            };
+            localStorage.setItem("sky_wallpaper_settings", JSON.stringify(config));
+        } catch (e) {
+            console.warn("Failed to save settings to localStorage.", e);
+        }
     }
 
     initDOMReferences() {
@@ -513,8 +547,14 @@ class SettingsManager {
 
     initUIListeners() {
         // Toggle Sidebar open/close
-        this.toggleBtn.addEventListener("click", () => this.panel.classList.toggle("open"));
-        this.closeBtn.addEventListener("click", () => this.panel.classList.remove("open"));
+        this.toggleBtn.addEventListener("click", () => {
+            const isOpen = this.panel.classList.toggle("open");
+            updateInteractiveRegion(isOpen);
+        });
+        this.closeBtn.addEventListener("click", () => {
+            this.panel.classList.remove("open");
+            updateInteractiveRegion(false);
+        });
 
         // Listeners for selectors
         this.timeModeSelect.addEventListener("change", (e) => {
@@ -571,6 +611,14 @@ class SettingsManager {
         document.addEventListener("click", (e) => {
             if (!this.panel.contains(e.target) && !this.toggleBtn.contains(e.target) && this.panel.classList.contains("open")) {
                 this.panel.classList.remove("open");
+                updateInteractiveRegion(false);
+            }
+        });
+
+        // Update gear button interactive coordinates on window resize if closed
+        window.addEventListener("resize", () => {
+            if (!this.panel.classList.contains("open")) {
+                updateInteractiveRegion(false);
             }
         });
     }
@@ -863,7 +911,7 @@ class WallpaperApp {
     init() {
         // Instantiate 110 stars on the canvas
         for (let i = 0; i < 110; i++) {
-            this.weatherEngine.stars.push(new CanvasStar(this.weatherEngine.width, this.weatherEngine.height));
+            this.weatherEngine.stars.push(new CanvasStar());
         }
 
         // Start engine frame loops
@@ -880,6 +928,14 @@ class WallpaperApp {
 }
 
 // Start the application when the DOM is fully ready
-document.addEventListener("DOMContentLoaded", () => {
-    window.app = new WallpaperApp();
-});
+function startApp() {
+    if (!window.app) {
+        window.app = new WallpaperApp();
+    }
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", startApp);
+} else {
+    startApp();
+}
