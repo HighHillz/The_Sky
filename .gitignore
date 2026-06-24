@@ -24,3 +24,10 @@ secrets.json
 # Test output
 coverage/
 Test/
+
+# Python
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
