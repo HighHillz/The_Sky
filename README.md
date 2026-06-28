@@ -3,7 +3,6 @@
 An advanced, immersive, and highly interactive live wallpaper simulation built with HTML5, CSS3, the HTML5 Canvas API, and Vanilla JavaScript. This version dynamically displays a live clock and floating year centerpiece against a realistic sky that shifts based on real-time weather data and the astronomical position of the Sun and Moon.
 
 ![Version](https://img.shields.io/badge/Version-3.0.0-blue.svg)
-![Status](https://img.shields.io/badge/Status-Deprecated-red.svg)
 
 
 ## 🌟 Features
