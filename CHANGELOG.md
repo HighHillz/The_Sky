@@ -2,25 +2,6 @@
 
 All notable changes to this project will be noted here.
 
-## 3 - Real Weather
-
-### [3.0.0] - 6 Jun 2026
-Bringing new wallpaper elements! Now watch the sky change based on the immersive real-world weather. It fetches the weather from the Open-Meteo API and current system location. 
-
-Weather and time settings can be controlled manually using the settings panel, helping in keeping your favourite sky and weather effects.
-
-Weather effects added:
-- Rain
-- Snow
-- Cloudy
-- Clear Sky
-- Overcast
-
-Sky visuals have been enhanced, with a rich variety of colours and gradients. The sun and moon have been enhanced.
-Two new sky elements have been added, to bridge the transition between day and night:
-- Sunrise (between day and night)
-- Sunset (between night and day)
-
 ## 2 - Day and Night
 
 ### [2.2.0] - 4 Jun 2025
