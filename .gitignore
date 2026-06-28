@@ -1,14 +1,41 @@
-# Node modules
+# Dependencies
 node_modules/
+jspm_packages/
+web_modules/
 
-# Environment
-.env
+# Python Virtual Environments
+venv/
+.venv/
+env/
+venv.bak/
 
-# IDE
+# Python Cache & Build
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+
+# IDE / Editor Settings
 .vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
 
-# OS
+# OS Metadata
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # Logs
@@ -16,11 +43,18 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# Specific JSONs (remove wildcard!)
+# Secret & Environment Files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 config.json
 secrets.json
 
-# Test output
+# Test Output & Cache
 coverage/
 Test/
+.eslintcache
