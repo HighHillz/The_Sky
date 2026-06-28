@@ -2,6 +2,6 @@
 
 | Version | Theme | Status | Release Date | |
 | :---: | :---: | :---: | :---: | :---: |
-| **[3](https://github.com/HighHillz/The_Sky/tree/main/)** | Real Weather | `Active` | 6 Jun 2026 | ![Viewing](https://img.shields.io/badge/Viewing-green.svg) |
-| **[2](https://github.com/HighHillz/The_Sky/tree/v2-day_and_night/)** | Day and Night | `Deprecated` | 16 Jun 2023 | |
+| **3** | Real Weather | `Active` | 6 Jun 2026 | ![Viewing](https://img.shields.io/badge/Viewing-green.svg) |
+| **2** | Day and Night | `Deprecated` | 16 Jun 2023 | |
 | **1** | New Year | `Deprecated` | 20 May 2023 | |
