@@ -1,20 +1,24 @@
-// Helper to communicate settings state and exact gear button boundaries with Python backend
+// Helper to communicate settings state and interactive boundaries with Python backend
 function updateInteractiveRegion(isOpen) {
     if (window.pywebview && window.pywebview.api && window.pywebview.api.set_interactive_mode) {
-        if (isOpen) {
-            window.pywebview.api.set_interactive_mode(true, 0, 0, 0, 0);
+        const settingsOpen = document.getElementById("settings-overlay")?.classList.contains("open");
+        const widgetOpen = document.getElementById("widget-overlay")?.classList.contains("open");
+
+        if (isOpen || settingsOpen || widgetOpen) {
+            window.pywebview.api.set_interactive_mode(true);
         } else {
-            const btn = document.getElementById("settings-toggle");
-            if (btn) {
-                const rect = btn.getBoundingClientRect();
-                window.pywebview.api.set_interactive_mode(
-                    false,
-                    Math.round(rect.left),
-                    Math.round(rect.top),
-                    Math.round(rect.width),
-                    Math.round(rect.height)
-                );
+            const rects = [];
+            const gearBtn = document.getElementById("settings-toggle");
+            const clockCard = document.getElementById("clock-container");
+            if (gearBtn) {
+                const r = gearBtn.getBoundingClientRect();
+                rects.push({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) });
             }
+            if (clockCard) {
+                const r = clockCard.getBoundingClientRect();
+                rects.push({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) });
+            }
+            window.pywebview.api.set_interactive_mode(false, rects);
         }
     }
 }
@@ -485,6 +489,8 @@ class SettingsManager {
         this.showCelestial = true;
         this.showWeather = true;
         this.twelveHour = false;
+        this.timezone = "local";
+        this.showDay = true;
 
         this.loadSettings();
         this.initDOMReferences();
@@ -504,6 +510,8 @@ class SettingsManager {
                 this.showCelestial = parsed.showCelestial ?? this.showCelestial;
                 this.showWeather = parsed.showWeather ?? this.showWeather;
                 this.twelveHour = parsed.twelveHour ?? this.twelveHour;
+                this.timezone = parsed.timezone ?? this.timezone;
+                this.showDay = parsed.showDay ?? this.showDay;
             }
         } catch (e) {
             console.warn("localStorage not available or corrupted. Using defaults.", e);
@@ -519,7 +527,9 @@ class SettingsManager {
                 showClock: this.showClock,
                 showCelestial: this.showCelestial,
                 showWeather: this.showWeather,
-                twelveHour: this.twelveHour
+                twelveHour: this.twelveHour,
+                timezone: this.timezone,
+                showDay: this.showDay
             };
             localStorage.setItem("sky_wallpaper_settings", JSON.stringify(config));
         } catch (e) {
@@ -528,58 +538,108 @@ class SettingsManager {
     }
 
     initDOMReferences() {
+        this.overlay = document.getElementById("settings-overlay");
         this.panel = document.getElementById("settings-panel");
         this.toggleBtn = document.getElementById("settings-toggle");
         this.closeBtn = document.getElementById("settings-close");
+        this.infoBtn = document.getElementById("product-info");
 
-        this.timeModeSelect = document.getElementById("override-time");
-        this.weatherModeSelect = document.getElementById("weather-mode");
-        this.fontSelectElement = document.getElementById("font-select");
+        this.aboutBody = document.getElementById("about-body");
+        this.settingsBody = document.querySelector(".settings-body");
+        this.settingsFooter = document.querySelector(".settings-footer");
+        this.settingsTitle = document.querySelector(".settings-header h3");
+
+        this.timeModeSelect = document.getElementById("custom-time-mode");
+        this.weatherModeSelect = document.getElementById("custom-weather-mode");
+        this.fontSelectElement = document.getElementById("custom-font-select");
 
         this.showClockCheckbox = document.getElementById("show-clock");
         this.showCelestialCheckbox = document.getElementById("show-celestial");
         this.showWeatherCheckbox = document.getElementById("show-weather");
-        this.twelveHourCheckbox = document.getElementById("twelve-hour");
+
+        // Widget details popup refs
+        this.widgetOverlay = document.getElementById("widget-overlay");
+        this.widgetPanel = document.getElementById("widget-panel");
+        this.widgetCloseBtn = document.getElementById("widget-close");
+        this.clockContainer = document.getElementById("clock-container");
+
+        this.timezoneLabel = document.getElementById("widget-system-timezone");
+        this.showDayCheckbox = document.getElementById("widget-show-day");
+        this.twelveHourCheckbox = document.getElementById("widget-twelve-hour");
 
         this.weatherStatusText = document.getElementById("weather-status");
         this.refreshWeatherBtn = document.getElementById("refresh-weather");
     }
 
     initUIListeners() {
+        const resetToSettingsView = () => {
+            this.aboutBody.classList.add("hidden");
+            this.settingsBody.classList.remove("hidden");
+            this.settingsFooter.classList.remove("hidden");
+            this.settingsTitle.textContent = "Settings";
+            this.infoBtn.innerHTML = '<i class="fas fa-info-circle"></i>';
+        };
+
         // Toggle Sidebar open/close
         this.toggleBtn.addEventListener("click", () => {
-            const isOpen = this.panel.classList.toggle("open");
+            const isOpen = this.overlay.classList.toggle("open");
+            if (!isOpen) resetToSettingsView();
             updateInteractiveRegion(isOpen);
         });
+
         this.closeBtn.addEventListener("click", () => {
-            this.panel.classList.remove("open");
+            this.overlay.classList.remove("open");
+            resetToSettingsView();
             updateInteractiveRegion(false);
         });
 
-        // Listeners for selectors
-        this.timeModeSelect.addEventListener("change", (e) => {
-            this.timeMode = e.target.value;
+        // Toggle between settings and about pages
+        this.infoBtn.addEventListener("click", () => {
+            const isAboutActive = !this.aboutBody.classList.contains("hidden");
+            if (isAboutActive) {
+                resetToSettingsView();
+            } else {
+                this.aboutBody.classList.remove("hidden");
+                this.settingsBody.classList.add("hidden");
+                this.settingsFooter.classList.add("hidden");
+                this.settingsTitle.textContent = "About";
+                this.infoBtn.innerHTML = '<i class="fas fa-arrow-left"></i>';
+            }
+        });
+
+        // Listeners for custom selectors
+        this.setupCustomDropdown("custom-time-mode", (val) => {
+            this.timeMode = val;
             this.saveSettings();
             this.app.timeController.update();
         });
 
-        this.weatherModeSelect.addEventListener("change", (e) => {
-            this.weatherMode = e.target.value;
+        this.setupCustomDropdown("custom-weather-mode", (val) => {
+            this.weatherMode = val;
             this.saveSettings();
             this.updateWeatherLogic();
         });
 
-        this.fontSelectElement.addEventListener("change", (e) => {
-            this.fontSelect = e.target.value;
+        this.setupCustomDropdown("custom-font-select", (val) => {
+            this.fontSelect = val;
             this.saveSettings();
             this.applyFont();
+        });
+
+        // Close dropdowns on clicking outside
+        document.addEventListener("click", () => {
+            document.querySelectorAll(".custom-select").forEach(el => {
+                el.classList.remove("open");
+            });
         });
 
         // Listeners for checkboxes
         this.showClockCheckbox.addEventListener("change", (e) => {
             this.showClock = e.target.checked;
             this.saveSettings();
-            document.getElementById("clock-container").style.opacity = this.showClock ? "1" : "0";
+            const clockEl = document.getElementById("clock-container");
+            clockEl.style.opacity = this.showClock ? "1" : "0";
+            clockEl.style.pointerEvents = this.showClock ? "auto" : "none";
         });
 
         this.showCelestialCheckbox.addEventListener("change", (e) => {
@@ -591,6 +651,33 @@ class SettingsManager {
         this.showWeatherCheckbox.addEventListener("change", (e) => {
             this.showWeather = e.target.checked;
             this.saveSettings();
+        });
+
+        // Interactive widget details popup events
+        this.clockContainer.addEventListener("click", () => {
+            if (!this.showClock) return;
+            const isOpen = this.widgetOverlay.classList.toggle("open");
+            updateInteractiveRegion(isOpen);
+        });
+
+        this.widgetCloseBtn.addEventListener("click", () => {
+            this.widgetOverlay.classList.remove("open");
+            updateInteractiveRegion(false);
+        });
+
+        this.widgetOverlay.addEventListener("click", (e) => {
+            if (e.target === this.widgetOverlay) {
+                this.widgetOverlay.classList.remove("open");
+                updateInteractiveRegion(false);
+            }
+        });
+
+        // showDay and 12-hour format listeners on the widget details modal
+
+        this.showDayCheckbox.addEventListener("change", (e) => {
+            this.showDay = e.target.checked;
+            this.saveSettings();
+            this.app.timeController.update();
         });
 
         this.twelveHourCheckbox.addEventListener("change", (e) => {
@@ -607,40 +694,113 @@ class SettingsManager {
             }
         });
 
-        // Click outside settings sidebar to close it
-        document.addEventListener("click", (e) => {
-            if (!this.panel.contains(e.target) && !this.toggleBtn.contains(e.target) && this.panel.classList.contains("open")) {
-                this.panel.classList.remove("open");
+        // Click on settings overlay background (outside the modal panel) to close it
+        this.overlay.addEventListener("click", (e) => {
+            if (e.target === this.overlay) {
+                this.overlay.classList.remove("open");
+                resetToSettingsView();
                 updateInteractiveRegion(false);
             }
         });
 
         // Update gear button interactive coordinates on window resize if closed
         window.addEventListener("resize", () => {
-            if (!this.panel.classList.contains("open")) {
+            const settingsOpen = this.overlay.classList.contains("open");
+            const widgetOpen = this.widgetOverlay.classList.contains("open");
+            if (!settingsOpen && !widgetOpen) {
                 updateInteractiveRegion(false);
             }
         });
     }
 
     applyAllSettings() {
-        this.timeModeSelect.value = this.timeMode;
-        this.weatherModeSelect.value = this.weatherMode;
-        this.fontSelectElement.value = this.fontSelect;
+        this.updateCustomDropdownValue("custom-time-mode", this.timeMode);
+        this.updateCustomDropdownValue("custom-weather-mode", this.weatherMode);
+        this.updateCustomDropdownValue("custom-font-select", this.fontSelect);
 
         this.showClockCheckbox.checked = this.showClock;
         this.showCelestialCheckbox.checked = this.showCelestial;
         this.showWeatherCheckbox.checked = this.showWeather;
+
+        // Set read-only system timezone display
+        const tzName = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+        if (this.timezoneLabel) {
+            this.timezoneLabel.textContent = `${tzName} (System)`;
+        }
+
+        this.showDayCheckbox.checked = this.showDay;
         this.twelveHourCheckbox.checked = this.twelveHour;
 
-        document.getElementById("clock-container").style.opacity = this.showClock ? "1" : "0";
+        const clockEl = document.getElementById("clock-container");
+        clockEl.style.opacity = this.showClock ? "1" : "0";
+        clockEl.style.pointerEvents = this.showClock ? "auto" : "none";
         this.applyFont();
         this.updateWeatherLogic();
+    }
+
+    setupCustomDropdown(id, onChangeCallback) {
+        const selectEl = document.getElementById(id);
+        if (!selectEl) return;
+
+        const trigger = selectEl.querySelector(".custom-select-trigger");
+        const optionsContainer = selectEl.querySelector(".custom-select-options");
+        const options = selectEl.querySelectorAll(".custom-option");
+
+        // Toggle open/closed
+        trigger.addEventListener("click", (e) => {
+            e.stopPropagation();
+            // Close other custom dropdowns first
+            document.querySelectorAll(".custom-select").forEach(el => {
+                if (el !== selectEl) el.classList.remove("open");
+            });
+            selectEl.classList.toggle("open");
+        });
+
+        // Option click
+        options.forEach(opt => {
+            opt.addEventListener("click", () => {
+                const val = opt.getAttribute("data-value");
+                const text = opt.textContent;
+
+                // Update text of trigger
+                trigger.querySelector("span").textContent = text;
+
+                // Update selected option class
+                options.forEach(o => o.classList.remove("selected"));
+                opt.classList.add("selected");
+
+                selectEl.classList.remove("open");
+
+                // Fire callback
+                onChangeCallback(val);
+            });
+        });
+    }
+
+    updateCustomDropdownValue(id, value) {
+        const selectEl = document.getElementById(id);
+        if (!selectEl) return;
+
+        const trigger = selectEl.querySelector(".custom-select-trigger span");
+        const options = selectEl.querySelectorAll(".custom-option");
+
+        options.forEach(opt => {
+            if (opt.getAttribute("data-value") === value) {
+                opt.classList.add("selected");
+                if (trigger) trigger.textContent = opt.textContent;
+            } else {
+                opt.classList.remove("selected");
+            }
+        });
     }
 
     applyFont() {
         const font = this.fontSelect;
         document.getElementById("clock-container").style.fontFamily = `"${font}", sans-serif`;
+        const widgetPreviewClock = document.getElementById("widget-preview-clock");
+        const widgetPreviewDate = document.getElementById("widget-preview-date");
+        if (widgetPreviewClock) widgetPreviewClock.style.fontFamily = `"${font}", sans-serif`;
+        if (widgetPreviewDate) widgetPreviewDate.style.fontFamily = `"${font}", sans-serif`;
         document.querySelector("h2").style.fontFamily = `"${font}", sans-serif`;
     }
 
@@ -772,11 +932,8 @@ class TimeController {
 
     updateTextColors(phase) {
         const colors = this.phaseTextColors[phase];
-        const clockContainer = document.getElementById("clock-container");
         const h2 = document.querySelector("h2");
-        const gearToggle = document.getElementById("settings-toggle");
 
-        clockContainer.style.color = colors.text;
         h2.style.color = colors.year;
 
         const shadow = colors.shadow;
@@ -792,25 +949,6 @@ class TimeController {
             9px 9px 0 ${shadow}, 
             15px 15px 15px rgba(0,0,0,0.3)
         `;
-
-        // Softly recolor gear icon so it stays readable in day vs night modes
-        if (phase === "day") {
-            gearToggle.style.color = "#181a30";
-            gearToggle.style.borderColor = "rgba(0, 0, 0, 0.15)";
-            gearToggle.style.background = "rgba(0, 0, 0, 0.05)";
-        } else if (phase == "sunrise") {
-            gearToggle.style.color = "#ffa";
-            gearToggle.style.borderColor = "rgba(255, 255, 255, 0.18)";
-            gearToggle.style.background = "rgba(255, 255, 255, 0.1)";
-        } else if (phase == "sunset") {
-            gearToggle.style.color = "#2c3e50";
-            gearToggle.style.borderColor = "rgba(255, 255, 255, 0.18)";
-            gearToggle.style.background = "rgba(255, 255, 255, 0.1)";
-        } else {
-            gearToggle.style.color = "#fff";
-            gearToggle.style.borderColor = "rgba(255, 255, 255, 0.18)";
-            gearToggle.style.background = "rgba(255, 255, 255, 0.1)";
-        }
     }
 
     updateCelestialPositions(decimalTime) {
@@ -873,27 +1011,57 @@ class TimeController {
     }
 
     updateClockDisplay(realTime) {
-        document.getElementById("year").textContent = realTime.getFullYear();
-
         if (!this.app.settings.showClock) return;
 
-        let hours = realTime.getHours();
-        const minutes = String(realTime.getMinutes()).padStart(2, "0");
-        const seconds = String(realTime.getSeconds()).padStart(2, "0");
-        let ampm = "";
+        // Format year
+        const yearFormatter = new Intl.DateTimeFormat('en-US', { year: 'numeric' });
+        document.getElementById("year").textContent = yearFormatter.format(realTime);
 
+        // Format time
+        const timeOptions = {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        };
+
+        const timeFormatter = new Intl.DateTimeFormat('en-US', timeOptions);
+        const timeParts = timeFormatter.formatToParts(realTime);
+        let hrStr = "00", minStr = "00", secStr = "00";
+        timeParts.forEach(p => {
+            if (p.type === 'hour') hrStr = p.value;
+            else if (p.type === 'minute') minStr = p.value;
+            else if (p.type === 'second') secStr = p.value;
+        });
+
+        let hours = parseInt(hrStr, 10);
+        let ampm = "";
         if (this.app.settings.twelveHour) {
             ampm = hours >= 12 ? " PM" : " AM";
             hours = hours % 12;
-            hours = hours ? hours : 12; // 0 is 12
+            hours = hours ? hours : 12;
+            hrStr = String(hours).padStart(2, "0");
         }
 
-        const hrStr = String(hours).padStart(2, "0");
-        document.getElementById("clock").textContent = `${hrStr}:${minutes}:${seconds}${ampm}`;
+        const clockStr = `${hrStr}:${minStr}:${secStr}${ampm}`;
+        document.getElementById("clock").textContent = clockStr;
 
-        const options = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
-        const dateStr = realTime.toLocaleDateString(undefined, options);
+        // Format date
+        const dateOptions = {
+            weekday: this.app.settings.showDay ? 'long' : undefined,
+            month: 'long',
+            day: 'numeric'
+        };
+
+        const dateFormatter = new Intl.DateTimeFormat('en-US', dateOptions);
+        const dateStr = dateFormatter.format(realTime);
         document.getElementById("date").textContent = dateStr;
+
+        // Update preview modal clock/date
+        const previewClock = document.getElementById("widget-preview-clock");
+        const previewDate = document.getElementById("widget-preview-date");
+        if (previewClock) previewClock.textContent = clockStr;
+        if (previewDate) previewDate.textContent = dateStr;
     }
 }
 

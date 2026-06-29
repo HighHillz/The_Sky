@@ -1,107 +1,194 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>The Sky - Dynamic Wallpaper</title>
-        <link rel="stylesheet" href="index.css?v=4" />
-        <!-- Google Fonts -->
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Orbitron:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Poppins:wght@400;700&display=swap">
-        <!-- FontAwesome Icons -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    </head>
 
-    <body>
-        <!-- Background Layers for Cross-Fade -->
-        <div id="bg-base" class="sky-bg"></div>
-        <div id="bg-overlay" class="sky-bg"></div>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Sky - Dynamic Wallpaper</title>
+    <link rel="stylesheet" href="index.css?v=5" />
+    <!-- Google Fonts -->
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Orbitron:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Poppins:wght@400;700&display=swap">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
 
-        <!-- Canvas for weather effects (rain, snow, clouds, shooting stars) -->
-        <canvas id="weather-canvas"></canvas>
+<body>
+    <!-- Background Layers for Cross-Fade -->
+    <div id="bg-base" class="sky-bg"></div>
+    <div id="bg-overlay" class="sky-bg"></div>
 
-        <!-- Top-Left Corner: Clock and Date -->
-        <div id="extra">
-            <div id="clock-container">
-                <div id="clock">15:17:32</div>
-                <div id="date">Friday, June 5, 2026</div>
-            </div>
+    <!-- Canvas for weather effects (rain, snow, clouds, shooting stars) -->
+    <canvas id="weather-canvas"></canvas>
+
+    <!-- Top-Left Corner: Clock and Date -->
+    <div id="extra">
+        <div id="clock-container">
+            <div id="clock">15:17:32</div>
+            <div id="date">Friday, June 5, 2026</div>
         </div>
+    </div>
 
-        <!-- Top-Right Corner: Settings Toggle Button -->
-        <button id="settings-toggle" aria-label="Open Settings"><i class="fas fa-cog"></i></button>
+    <!-- Top-Right Corner: Settings Toggle Button -->
+    <button id="settings-toggle" aria-label="Open Settings"><i class="fas fa-cog"></i></button>
 
-        <!-- Glassmorphic Settings Sidebar Panel -->
+    <!-- Glassmorphic Settings Overlay & Popup -->
+    <div id="settings-overlay" class="settings-overlay">
         <div id="settings-panel" class="settings-panel">
             <div class="settings-header">
                 <h3>Settings</h3>
-                <button id="settings-close" aria-label="Close Settings"><i class="fas fa-times"></i></button>
+                <div class="header-actions">
+                    <button id="product-info" aria-label="About Project"><i class="fas fa-info-circle"></i></button>
+                    <button id="settings-close" class="popup-close" aria-label="Close Settings"><i
+                            class="fas fa-times"></i></button>
+                </div>
             </div>
             <div class="settings-body">
-                <div class="setting-group">
-                    <label for="override-time">Time Mode</label>
-                    <select id="override-time">
-                        <option value="auto">Auto (Real Time)</option>
-                        <option value="sunrise">Sunrise</option>
-                        <option value="day">Day</option>
-                        <option value="sunset">Sunset</option>
-                        <option value="night">Night</option>
-                    </select>
-                </div>
-                
-                <div class="setting-group">
-                    <label for="weather-mode">Weather Mode</label>
-                    <select id="weather-mode">
-                        <option value="auto">Auto (Live API)</option>
-                        <option value="clear">Clear</option>
-                        <option value="rain">Rain</option>
-                        <option value="snow">Snow</option>
-                        <option value="cloudy">Cloudy</option>
-                    </select>
-                </div>
-                
-                <div class="setting-group">
-                    <label for="font-select">Typography Font</label>
-                    <select id="font-select">
-                        <option value="Poppins">Poppins</option>
-                        <option value="Montserrat">Montserrat</option>
-                        <option value="Playfair Display">Playfair Display</option>
-                        <option value="Orbitron">Orbitron (Digital)</option>
-                    </select>
+                <div class="settings-column">
+                    <div class="setting-group">
+                        <label>Time Mode</label>
+                        <div class="custom-select" id="custom-time-mode">
+                            <div class="custom-select-trigger"><span>Auto (Real Time)</span><i
+                                    class="fas fa-chevron-down"></i></div>
+                            <div class="custom-select-options">
+                                <div class="custom-option" data-value="auto">Auto (Real Time)</div>
+                                <div class="custom-option" data-value="sunrise">Sunrise</div>
+                                <div class="custom-option" data-value="day">Day</div>
+                                <div class="custom-option" data-value="sunset">Sunset</div>
+                                <div class="custom-option" data-value="night">Night</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>Weather Mode</label>
+                        <div class="custom-select" id="custom-weather-mode">
+                            <div class="custom-select-trigger"><span>Auto (Live API)</span><i
+                                    class="fas fa-chevron-down"></i></div>
+                            <div class="custom-select-options">
+                                <div class="custom-option" data-value="auto">Auto (Live API)</div>
+                                <div class="custom-option" data-value="clear">Clear</div>
+                                <div class="custom-option" data-value="rain">Rain</div>
+                                <div class="custom-option" data-value="snow">Snow</div>
+                                <div class="custom-option" data-value="cloudy">Cloudy</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <label>Typography Font</label>
+                        <div class="custom-select" id="custom-font-select">
+                            <div class="custom-select-trigger"><span>Poppins</span><i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="custom-select-options">
+                                <div class="custom-option" data-value="Poppins">Poppins</div>
+                                <div class="custom-option" data-value="Montserrat">Montserrat</div>
+                                <div class="custom-option" data-value="Playfair Display">Playfair Display</div>
+                                <div class="custom-option" data-value="Orbitron">Orbitron (Digital)</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="setting-group checkbox-group">
-                    <input type="checkbox" id="show-clock" checked>
-                    <label for="show-clock">Show Clock & Date</label>
-                </div>
-                
-                <div class="setting-group checkbox-group">
-                    <input type="checkbox" id="show-celestial" checked>
-                    <label for="show-celestial">Show Sun & Moon</label>
-                </div>
-                
-                <div class="setting-group checkbox-group">
-                    <input type="checkbox" id="show-weather" checked>
-                    <label for="show-weather">Show Weather Effects</label>
-                </div>
+                <div class="settings-column">
+                    <label class="column-header">Display Toggles</label>
+                    <div class="setting-group checkbox-group">
+                        <input type="checkbox" id="show-clock" checked>
+                        <label for="show-clock">Show Clock & Date</label>
+                    </div>
 
-                <div class="setting-group checkbox-group">
-                    <input type="checkbox" id="twelve-hour">
-                    <label for="twelve-hour">Use 12-Hour Format</label>
+                    <div class="setting-group checkbox-group">
+                        <input type="checkbox" id="show-celestial" checked>
+                        <label for="show-celestial">Show Sun & Moon</label>
+                    </div>
+
+                    <div class="setting-group checkbox-group">
+                        <input type="checkbox" id="show-weather" checked>
+                        <label for="show-weather">Show Weather Effects</label>
+                    </div>
                 </div>
             </div>
+
+            <!-- About Details body (hidden by default) -->
+            <div id="about-body" class="about-body hidden">
+                <div class="about-logo">
+                    <i class="fas fa-cloud-sun"></i>
+                    <h4>The Sky</h4>
+                    <span class="version-tag">v3.2.0-dev</span>
+                </div>
+                <p class="about-desc">
+                    An advanced, immersive, and interactive live wallpaper simulation. The sky, celestial paths, and
+                    active particles dynamically adapt to real-time weather forecasts and astronomical positions.
+                </p>
+                <div class="about-features">
+                    <h5>Key Capabilities</h5>
+                    <ul>
+                        <li><i class="fas fa-clock"></i> <span><strong>Real-Time Cycles:</strong> Sky shifts dynamically
+                                based on local time.</span></li>
+                        <li><i class="fas fa-cloud-showers-heavy"></i> <span><strong>Live Atmospheric FX:</strong>
+                                Renders rain, snow, and clouds in real-time.</span></li>
+                        <li><i class="fas fa-compass"></i> <span><strong>Astronomy Engine:</strong> Traces solar and
+                                lunar paths mathematically.</span></li>
+                    </ul>
+                </div>
+                <div class="about-credit">
+                    <p>Designed & Developed by <strong>HighHillz</strong></p>
+                    <span class="copyright-tag">Copyright &copy; 2026. All Rights Reserved.</span>
+                </div>
+            </div>
+
             <div class="settings-footer">
                 <div id="weather-status">Weather: Auto</div>
-                <button id="refresh-weather" class="btn-refresh"><i class="fas fa-sync-alt"></i> Refresh Weather</button>
+                <button id="refresh-weather" class="btn-refresh"><i class="fas fa-sync-alt"></i> Refresh
+                    Weather</button>
             </div>
         </div>
+    </div>
 
-        <section>
-            <p id="sun"></p>
-            <p id="moon"></p>
-            <h2 id="full"><span id="year">2026</span></h2> 
-            <div id="bday"></div>
-        </section>
+    <!-- Glassmorphic Clock/Widget Details Popup -->
+    <div id="widget-overlay" class="settings-overlay">
+        <div id="widget-panel" class="settings-panel" style="max-width: 440px;">
+            <div class="settings-header" style="padding: 24px 24px 14px;">
+                <h3>Clock</h3>
+                <div class="header-actions">
+                    <button id="widget-close" class="popup-close" aria-label="Close Clock Settings"><i
+                            class="fas fa-times"></i></button>
+                </div>
+            </div>
+            <div class="settings-body"
+                style="padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 20px;">
+                <!-- Large clock display inside the popup -->
+                <div class="widget-preview-container" style="margin-bottom: 12px;">
+                    <div id="widget-preview-clock"></div>
+                    <div id="widget-preview-date"></div>
+                </div>
 
-        <script src="index.js?v=4"></script>
-    </body>
+                <!-- System Timezone displayed under the clock card -->
+                <div id="widget-system-timezone"
+                    style="text-align: center; font-size: 0.8rem; font-style: italic; color: rgba(255, 255, 255, 0.55); margin-top: -12px; margin-bottom: 8px;">
+                    UTC (System)</div>
+
+                <div class="setting-group checkbox-group">
+                    <input type="checkbox" id="widget-twelve-hour">
+                    <label for="widget-twelve-hour">Use 12-Hour Format</label>
+                </div>
+
+                <div class="setting-group checkbox-group">
+                    <input type="checkbox" id="widget-show-day" checked>
+                    <label for="widget-show-day">Show Day of Week</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section>
+        <p id="sun"></p>
+        <p id="moon"></p>
+        <h2 id="full"><span id="year">2026</span></h2>
+        <div id="bday"></div>
+    </section>
+
+    <script src="index.js?v=5"></script>
+</body>
+
 </html>

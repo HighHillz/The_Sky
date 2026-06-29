@@ -124,9 +124,8 @@ class WallpaperAPI:
         """Prints log messages sent from the JavaScript application."""
         print(f"[JS-Debug] {message}")
 
-    def set_interactive_mode(self, is_open, x, y, w, h):
+    def set_interactive_mode(self, is_open, rects=None):
         """Dynamically toggles the interactive (clickable) region of the window.
-        Uses exact dimensions and scaling parameters passed from the browser.
         """
         if not self.window:
             return
@@ -153,19 +152,23 @@ class WallpaperAPI:
                     win_w = int(self.window.width)
                     win_h = int(self.window.height)
                     rect = cairo.RectangleInt(0, 0, win_w, win_h)
+                    region = cairo.Region(rect)
                 else:
-                    # Make only the settings gear button interactive, scaled by GTK's scaling factor
+                    # Make only the specified rectangles interactive, scaled by GTK's scaling factor
                     scale = gtk_window.get_scale_factor()
-                    rect = cairo.RectangleInt(
-                        int(x * scale),
-                        int(y * scale),
-                        int(w * scale),
-                        int(h * scale)
-                    )
+                    region = cairo.Region()
+                    if rects:
+                        for r in rects:
+                            rect = cairo.RectangleInt(
+                                int(r['x'] * scale),
+                                int(r['y'] * scale),
+                                int(r['w'] * scale),
+                                int(r['h'] * scale)
+                            )
+                            region.union(cairo.Region(rect))
                 
-                region = cairo.Region(rect)
                 gtk_window.input_shape_combine_region(region)
-                print(f"[wallpaper] Interactive region updated (is_open: {is_open}, x={x}, y={y}, w={w}, h={h}, scale={scale})")
+                print(f"[wallpaper] Interactive region updated (is_open: {is_open}, rects={rects})")
             except Exception as e:
                 print(f"[wallpaper] Failed to update interactive shape: {e}")
 
