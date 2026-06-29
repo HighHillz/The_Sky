@@ -1,8 +1,8 @@
-# Version 3 — Real Weather
+# The Sky
 
 An advanced, immersive, and highly interactive live wallpaper simulation built with HTML5, CSS3, the HTML5 Canvas API, and Vanilla JavaScript. This version dynamically displays a live clock and floating year centerpiece against a realistic sky that shifts based on real-time weather data and the astronomical position of the Sun and Moon.
 
-![Version](https://img.shields.io/badge/Version-3.1.0-blue.svg)
+![Latest Version](https://img.shields.io/badge/Latest%20Version-3.2.0--dev-navy.svg)
 ![Status](https://img.shields.io/badge/Status-Active-brightgreen.svg)
 
 
@@ -14,7 +14,7 @@ An advanced, immersive, and highly interactive live wallpaper simulation built w
 * **Offline Resilience**: Automatically falls back to clear weather if the API requests or permission lookups fail or time out.
 
 ### 2. Native Desktop Integration & Z-Ordering
-* **Cross-Platform**: Run the wallpaper directly as the desktop background on **Linux** (via GTK/Cairo), **macOS** (via AppKit `NSDesktopWindowLevel`), and **Windows** (via Win32 `SetWindowPos`).
+* **Linux Desktop Integration**: Run the wallpaper directly as the desktop background on any **Linux distribution** using GTK + X11 (or XWayland). The click-through shape masking relies on Cairo's `input_shape_combine_region`, which is an X11 feature.
 * **Interactive Shape Masking**: Uses Cairo region blending to capture click inputs *only* on active UI elements (like the settings gear) while making the rest of the wallpaper completely click-through to allow normal OS usage.
 * **Continuous Render Loop**: Utilizes a robust timer loop that bypasses browser engines' tendency to freeze/suspend `requestAnimationFrame` when the wallpaper is layered behind active workspace windows.
 
@@ -33,46 +33,74 @@ An advanced, immersive, and highly interactive live wallpaper simulation built w
 * **Celestial Paths**: The Sun and Moon follow custom mathematical parabolic arcs across the viewport. The Sun rises at `05:30` and sets at `18:30`, dynamically fading out as it reaches the horizon.
 
 ### 5. Glassmorphic Settings Panel
-A sleek settings sidebar featuring blur filters and micro-animations that allows full customization:
+A sleek, centered glassmorphic popup modal featuring backdrop blur and micro-animations that allows full customization. An **About** screen — accessible via the info icon in the settings header — displays project details, version, and key capabilities:
 * **Time Override**: Simulate different phases of the day (Auto, Sunrise, Day, Sunset, Night).
 * **Weather Override**: Manually override live weather with Clear, Rain, Snow, or Cloudy presets.
 * **Typography Selector**: Choose from different typography styles including *Poppins*, *Montserrat*, *Playfair Display*, and *Orbitron (Digital)*.
 * **Element Toggles**: Individually show or hide the Clock & Date, Sun & Moon, and Weather Effects.
-* **12/24-Hour Selector**: Switch between 12-hour and 24-hour clock formats.
 * **LocalStorage Persistence**: Saves all configuration choices so they persist between page reloads.
+
+### 6. Clock Widget
+The clock and date display has been elevated into an interactive widget card. Clicking the card opens a dedicated widget popup featuring a live preview clock and additional controls:
+* **12/24-Hour Toggle**: Switch between 12-hour and 24-hour clock formats.
+* **Day of Week Toggle**: Show or hide the day of the week in the date line.
 
 ## 🚀 How to Run
 
 ### Method 1: Desktop Wallpaper Mode (Recommended)
-You can run the wallpaper directly on your desktop background using the native Python wrapper.
+You can run the wallpaper directly on your desktop background using the native Python wrapper. This requires **Linux with GTK and X11** (or XWayland). It works on any major Linux distribution.
 
-1. **Set up the virtual environment** (this allows access to system libraries like GTK/Cairo while keeping python packages isolated):
+1. **Install system dependencies** (required for GTK/Cairo drawing and the WebKit rendering engine):
+
+   **Ubuntu / Debian:**
    ```bash
-   python3 -m venv --system-site-packages venv
+   sudo apt update
+   sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0 gir1.2-webkit2-4.1 wmctrl
+   ```
+   *(Note: Depending on your Ubuntu version, you might need `gir1.2-webkit2-4.0` instead of `4.1`.)*
+
+   **Fedora / RHEL:**
+   ```bash
+   sudo dnf install python3-gobject python3-cairo webkit2gtk4.1 wmctrl
    ```
 
-2. **Run the wallpaper**:
-   * **Interactive/Testing Mode**:
+   **Arch Linux:**
+   ```bash
+   sudo pacman -S python-gobject python-cairo webkit2gtk wmctrl
+   ```
+
+   **openSUSE:**
+   ```bash
+   sudo zypper install python3-gobject python3-cairo webkit2gtk3 wmctrl
+   ```
+
+2. **Set up the virtual environment** (accesses the system packages for GTK/Cairo while keeping other dependencies isolated):
+   ```bash
+   python3 -m venv --system-site-packages venv
+   ./venv/bin/pip install pywebview
+   ```
+
+3. **Run the wallpaper**:
+   * **Foreground (Testing Mode)**:
      ```bash
      ./venv/bin/python3 wallpaper.py
      ```
-   * **Background/Daemon Mode** (runs silently behind all your apps):
+   * **Background (Daemon Mode)**:
      ```bash
      nohup ./venv/bin/python3 wallpaper.py > wallpaper.log 2>&1 &
      ```
 
-3. **Stop the background wallpaper**:
+4. **Stop the background wallpaper**:
    ```bash
    pkill -f wallpaper.py
    ```
-
 ---
 
 ### Method 2: Browser Mode (Local Development)
 Because the wallpaper uses reverse-geocoding, modern browsers restrict location lookups on raw local file paths (`file:///` protocols). You can preview the application in your browser using a local HTTP server:
 
 #### Option A: Python HTTP Server (Easiest)
-Open a terminal in this directory and run:
+Open a terminal in the project directory and run:
 ```bash
 python3 -m http.server 8000
 ```
