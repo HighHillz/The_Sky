@@ -3,19 +3,26 @@ function updateInteractiveRegion(isOpen) {
     if (window.pywebview && window.pywebview.api && window.pywebview.api.set_interactive_mode) {
         const settingsOpen = document.getElementById("settings-overlay")?.classList.contains("open");
         const widgetOpen = document.getElementById("widget-overlay")?.classList.contains("open");
+        const weatherOpen = document.getElementById("weather-popup-overlay")?.classList.contains("open");
 
-        if (isOpen || settingsOpen || widgetOpen) {
+        if (isOpen || settingsOpen || widgetOpen || weatherOpen) {
             window.pywebview.api.set_interactive_mode(true);
         } else {
             const rects = [];
             const gearBtn = document.getElementById("settings-toggle");
             const clockCard = document.getElementById("clock-container");
+            const weatherCard = document.getElementById("weather-widget");
+
             if (gearBtn) {
                 const r = gearBtn.getBoundingClientRect();
                 rects.push({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) });
             }
-            if (clockCard) {
+            if (clockCard && window.getComputedStyle(clockCard).opacity === "1") {
                 const r = clockCard.getBoundingClientRect();
+                rects.push({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) });
+            }
+            if (weatherCard && window.getComputedStyle(weatherCard).opacity === "1") {
+                const r = weatherCard.getBoundingClientRect();
                 rects.push({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) });
             }
             window.pywebview.api.set_interactive_mode(false, rects);
@@ -433,12 +440,16 @@ class WeatherAPI {
 
     async fetchFromMeteo(lat, lon, locationLabel) {
         try {
-            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&current=relative_humidity_2m,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&timezone=auto`);
             if (!res.ok) throw new Error("Weather API request failed");
             const data = await res.json();
 
             const weathercode = data.current_weather.weathercode;
             const temp = Math.round(data.current_weather.temperature);
+            const humidity = data.current ? data.current.relative_humidity_2m : 0;
+            const windSpeed = data.current ? data.current.wind_speed_10m : 0;
+            const tempMax = Math.round(data.daily.temperature_2m_max[0]);
+            const tempMin = Math.round(data.daily.temperature_2m_min[0]);
 
             const mappedWeather = this.mapWeatherCode(weathercode);
             this.app.weatherEngine.setWeather(mappedWeather);
@@ -446,10 +457,13 @@ class WeatherAPI {
 
             const desc = this.getWeatherDescription(weathercode);
             this.app.settings.updateWeatherStatus(`Live: ${locationLabel} - ${desc} (${temp}°C)`);
+
+            // Store for weather widget
+            this.widgetData = { location: locationLabel, temp, tempMax, tempMin, humidity, windSpeed, description: desc, weathercode };
+            this.updateWeatherWidget();
         } catch (err) {
             console.error("Live weather fetching failed", err);
             this.app.settings.updateWeatherStatus("API Error. Offline");
-            // If offline, default to clear weather
             this.app.weatherEngine.setWeather("clear");
         }
     }
@@ -457,7 +471,7 @@ class WeatherAPI {
     mapWeatherCode(code) {
         if (code === 0) return "clear";
         if (code >= 1 && code <= 3) return "cloudy";
-        if (code === 45 || code === 48) return "cloudy"; // Fog acts like cloudy
+        if (code === 45 || code === 48) return "cloudy";
         if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || (code >= 95 && code <= 99)) return "rain";
         if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) return "snow";
         return "clear";
@@ -474,6 +488,122 @@ class WeatherAPI {
         };
         return descriptions[code] || "Clear";
     }
+
+    getWeatherIcon(code) {
+        if (code === 0) return "fa-sun";
+        if (code >= 1 && code <= 2) return "fa-cloud-sun";
+        if (code === 3) return "fa-cloud";
+        if (code === 45 || code === 48) return "fa-smog";
+        if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return "fa-cloud-showers-heavy";
+        if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) return "fa-snowflake";
+        if (code >= 95) return "fa-bolt";
+        return "fa-cloud";
+    }
+
+    formatTemperature(tempC) {
+        if (this.app.settings.tempUnit === "F") {
+            const tempF = Math.round((tempC * 9 / 5) + 32);
+            return `${tempF}°F`;
+        }
+        return `${tempC}°C`;
+    }
+
+    formatRange(tempMinC, tempMaxC) {
+        if (this.app.settings.tempUnit === "F") {
+            const minF = Math.round((tempMinC * 9 / 5) + 32);
+            const maxF = Math.round((tempMaxC * 9 / 5) + 32);
+            return `&uarr; ${maxF}°F &nbsp; &darr; ${minF}°F`;
+        }
+        return `&uarr; ${tempMaxC}°C &nbsp; &darr; ${tempMinC}°C`;
+    }
+
+    updateWeatherWidget() {
+        const d = this.widgetData;
+        if (!d) return;
+
+        const iconClass = `fas ${this.getWeatherIcon(d.weathercode)}`;
+        const formattedTemp = this.formatTemperature(d.temp);
+        const formattedMinMax = this.formatRange(d.tempMin, d.tempMax);
+
+        // 1. Update Wallpaper widget
+        const iconEl = document.getElementById("weather-widget-icon");
+        if (iconEl) iconEl.className = iconClass;
+        const tempEl = document.getElementById("weather-widget-temp");
+        if (tempEl) tempEl.textContent = formattedTemp;
+        const locEl = document.getElementById("weather-widget-location");
+        if (locEl) locEl.textContent = d.location;
+
+        // 2. Update Preview card (Customize tab)
+        const previewIconEl = document.getElementById("weather-preview-icon");
+        if (previewIconEl) previewIconEl.className = iconClass;
+        const previewTempEl = document.getElementById("weather-preview-temp");
+        if (previewTempEl) previewTempEl.textContent = formattedTemp;
+        const previewLocEl = document.getElementById("weather-preview-location");
+        if (previewLocEl) previewLocEl.textContent = d.location;
+
+        // 3. Update Details popup fields
+        const detailConditionIcon = document.getElementById("weather-detail-condition-icon");
+        if (detailConditionIcon) detailConditionIcon.className = `${iconClass} widget-detail-icon`;
+        const detailCondition = document.getElementById("weather-detail-condition");
+        if (detailCondition) detailCondition.textContent = d.description;
+        const detailTempLoc = document.getElementById("weather-detail-temp-loc");
+        if (detailTempLoc) detailTempLoc.innerHTML = `${formattedTemp} &bull; ${d.location}`;
+        const detailRange = document.getElementById("weather-detail-range");
+        if (detailRange) detailRange.innerHTML = formattedMinMax;
+        const detailHumidity = document.getElementById("weather-detail-humidity");
+        if (detailHumidity) detailHumidity.textContent = d.humidity !== undefined ? `${d.humidity}%` : "--";
+        const detailWind = document.getElementById("weather-detail-wind");
+        if (detailWind) detailWind.textContent = d.windSpeed !== undefined ? `${d.windSpeed} km/h` : "--";
+    }
+
+    // Fetch widget data even when weatherMode is manual (effects not updated)
+    async fetchForWidget() {
+        if (this.widgetData) { this.updateWeatherWidget(); return; }
+
+        // In auto mode, updateWeather() runs at startup and will populate widgetData
+        // with proper reverse-geocoding. Don't touch lastFetch here — let it run.
+        if (this.app.settings.weatherMode === "auto") return;
+
+        // Manual mode only: updateWeather() won't run, so fetch independently.
+        // Mirror updateWeather()'s full geolocation + reverse-geocoding flow.
+        try {
+            const geoRes = await fetch("https://ipapi.co/json/");
+            if (geoRes.ok) {
+                const geoData = await geoRes.json();
+                if (geoData.latitude && geoData.longitude) {
+                    const city = geoData.city || "Local";
+                    const country = geoData.country_code ? geoData.country_code.toUpperCase() : "";
+                    const label = country ? `${city}, ${country}` : city;
+                    await this.fetchFromMeteo(geoData.latitude, geoData.longitude, label);
+                    return;
+                }
+            }
+        } catch (e) { /* fall through */ }
+
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    let label = "Local";
+                    try {
+                        const rRes = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=en`);
+                        if (rRes.ok) {
+                            const d = await rRes.json();
+                            const city = d.city || d.locality || d.principalSubdivision || "Local";
+                            const country = d.countryCode ? d.countryCode.toUpperCase() : "";
+                            label = country ? `${city}, ${country}` : city;
+                        }
+                    } catch (e) { }
+                    await this.fetchFromMeteo(lat, lon, label);
+                },
+                async () => { await this.fetchFromMeteo(51.5074, -0.1278, "London (Default)"); },
+                { timeout: 7000 }
+            );
+        } else {
+            await this.fetchFromMeteo(51.5074, -0.1278, "London (Default)");
+        }
+    }
 }
 
 // Manager to handle user configurations, UI bindings and localStorage saving
@@ -484,13 +614,13 @@ class SettingsManager {
         // Defaults
         this.timeMode = "auto";
         this.weatherMode = "auto";
-        this.fontSelect = "Poppins";
-        this.showClock = true;
+        this.widgetSelect = "clock";
         this.showCelestial = true;
         this.showWeather = true;
         this.twelveHour = false;
         this.timezone = "local";
         this.showDay = true;
+        this.tempUnit = "C";
 
         this.loadSettings();
         this.initDOMReferences();
@@ -505,13 +635,13 @@ class SettingsManager {
                 const parsed = JSON.parse(saved);
                 this.timeMode = parsed.timeMode ?? this.timeMode;
                 this.weatherMode = parsed.weatherMode ?? this.weatherMode;
-                this.fontSelect = parsed.fontSelect ?? this.fontSelect;
-                this.showClock = parsed.showClock ?? this.showClock;
+                this.widgetSelect = parsed.widgetSelect ?? this.widgetSelect;
                 this.showCelestial = parsed.showCelestial ?? this.showCelestial;
                 this.showWeather = parsed.showWeather ?? this.showWeather;
                 this.twelveHour = parsed.twelveHour ?? this.twelveHour;
                 this.timezone = parsed.timezone ?? this.timezone;
                 this.showDay = parsed.showDay ?? this.showDay;
+                this.tempUnit = parsed.tempUnit ?? this.tempUnit;
             }
         } catch (e) {
             console.warn("localStorage not available or corrupted. Using defaults.", e);
@@ -523,13 +653,13 @@ class SettingsManager {
             const config = {
                 timeMode: this.timeMode,
                 weatherMode: this.weatherMode,
-                fontSelect: this.fontSelect,
-                showClock: this.showClock,
+                widgetSelect: this.widgetSelect,
                 showCelestial: this.showCelestial,
                 showWeather: this.showWeather,
                 twelveHour: this.twelveHour,
                 timezone: this.timezone,
-                showDay: this.showDay
+                showDay: this.showDay,
+                tempUnit: this.tempUnit
             };
             localStorage.setItem("sky_wallpaper_settings", JSON.stringify(config));
         } catch (e) {
@@ -551,9 +681,8 @@ class SettingsManager {
 
         this.timeModeSelect = document.getElementById("custom-time-mode");
         this.weatherModeSelect = document.getElementById("custom-weather-mode");
-        this.fontSelectElement = document.getElementById("custom-font-select");
+        this.widgetSelectElement = document.getElementById("custom-widget-select");
 
-        this.showClockCheckbox = document.getElementById("show-clock");
         this.showCelestialCheckbox = document.getElementById("show-celestial");
         this.showWeatherCheckbox = document.getElementById("show-weather");
 
@@ -563,9 +692,15 @@ class SettingsManager {
         this.widgetCloseBtn = document.getElementById("widget-close");
         this.clockContainer = document.getElementById("clock-container");
 
-        this.timezoneLabel = document.getElementById("widget-system-timezone");
+        this.timezoneLabel = document.getElementById("detail-timezone");
         this.showDayCheckbox = document.getElementById("widget-show-day");
         this.twelveHourCheckbox = document.getElementById("widget-twelve-hour");
+
+        // Weather details popup refs
+        this.weatherPopupOverlay = document.getElementById("weather-popup-overlay");
+        this.weatherPopupCloseBtn = document.getElementById("weather-popup-close");
+        this.weatherWidget = document.getElementById("weather-widget");
+        this.tempUnitSelect = document.getElementById("custom-temp-unit");
 
         this.weatherStatusText = document.getElementById("weather-status");
         this.refreshWeatherBtn = document.getElementById("refresh-weather");
@@ -620,10 +755,18 @@ class SettingsManager {
             this.updateWeatherLogic();
         });
 
-        this.setupCustomDropdown("custom-font-select", (val) => {
-            this.fontSelect = val;
+        this.setupCustomDropdown("custom-widget-select", (val) => {
+            this.widgetSelect = val;
             this.saveSettings();
-            this.applyFont();
+            this.applyWidget();
+        });
+
+        this.setupCustomDropdown("custom-temp-unit", (val) => {
+            this.tempUnit = val;
+            this.saveSettings();
+            if (this.app.weatherAPI) {
+                this.app.weatherAPI.updateWeatherWidget();
+            }
         });
 
         // Close dropdowns on clicking outside
@@ -634,14 +777,6 @@ class SettingsManager {
         });
 
         // Listeners for checkboxes
-        this.showClockCheckbox.addEventListener("change", (e) => {
-            this.showClock = e.target.checked;
-            this.saveSettings();
-            const clockEl = document.getElementById("clock-container");
-            clockEl.style.opacity = this.showClock ? "1" : "0";
-            clockEl.style.pointerEvents = this.showClock ? "auto" : "none";
-        });
-
         this.showCelestialCheckbox.addEventListener("change", (e) => {
             this.showCelestial = e.target.checked;
             this.saveSettings();
@@ -655,7 +790,7 @@ class SettingsManager {
 
         // Interactive widget details popup events
         this.clockContainer.addEventListener("click", () => {
-            if (!this.showClock) return;
+            if (this.widgetSelect !== "clock") return;
             const isOpen = this.widgetOverlay.classList.toggle("open");
             updateInteractiveRegion(isOpen);
         });
@@ -663,13 +798,61 @@ class SettingsManager {
         this.widgetCloseBtn.addEventListener("click", () => {
             this.widgetOverlay.classList.remove("open");
             updateInteractiveRegion(false);
+            this._resetWidgetTabs();
         });
 
         this.widgetOverlay.addEventListener("click", (e) => {
             if (e.target === this.widgetOverlay) {
                 this.widgetOverlay.classList.remove("open");
                 updateInteractiveRegion(false);
+                this._resetWidgetTabs();
             }
+        });
+
+        // Weather widget details popup events
+        this.weatherWidget.addEventListener("click", () => {
+            if (this.widgetSelect !== "weather") return;
+            const isOpen = this.weatherPopupOverlay.classList.toggle("open");
+            updateInteractiveRegion(isOpen);
+            if (isOpen && this.app.weatherAPI) {
+                this.app.weatherAPI.updateWeatherWidget();
+            }
+        });
+
+        this.weatherPopupCloseBtn.addEventListener("click", () => {
+            this.weatherPopupOverlay.classList.remove("open");
+            updateInteractiveRegion(false);
+            this._resetWeatherTabs();
+        });
+
+        this.weatherPopupOverlay.addEventListener("click", (e) => {
+            if (e.target === this.weatherPopupOverlay) {
+                this.weatherPopupOverlay.classList.remove("open");
+                updateInteractiveRegion(false);
+                this._resetWeatherTabs();
+            }
+        });
+
+        // Clock Widget popup tab toggle
+        document.querySelectorAll("#widget-overlay .widget-tab-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const tab = btn.dataset.tab;
+                document.querySelectorAll("#widget-overlay .widget-tab-btn").forEach(b => b.classList.remove("active"));
+                document.querySelectorAll("#widget-overlay .widget-tab-panel").forEach(p => p.classList.remove("active"));
+                btn.classList.add("active");
+                document.getElementById(`widget-tab-${tab}`).classList.add("active");
+            });
+        });
+
+        // Weather Widget popup tab toggle
+        document.querySelectorAll("#weather-popup-overlay .widget-tab-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const tab = btn.dataset.tab;
+                document.querySelectorAll("#weather-popup-overlay .widget-tab-btn").forEach(b => b.classList.remove("active"));
+                document.querySelectorAll("#weather-popup-overlay .widget-tab-panel").forEach(p => p.classList.remove("active"));
+                btn.classList.add("active");
+                document.getElementById(`weather-tab-${tab}`).classList.add("active");
+            });
         });
 
         // showDay and 12-hour format listeners on the widget details modal
@@ -707,7 +890,8 @@ class SettingsManager {
         window.addEventListener("resize", () => {
             const settingsOpen = this.overlay.classList.contains("open");
             const widgetOpen = this.widgetOverlay.classList.contains("open");
-            if (!settingsOpen && !widgetOpen) {
+            const weatherOpen = this.weatherPopupOverlay.classList.contains("open");
+            if (!settingsOpen && !widgetOpen && !weatherOpen) {
                 updateInteractiveRegion(false);
             }
         });
@@ -716,9 +900,9 @@ class SettingsManager {
     applyAllSettings() {
         this.updateCustomDropdownValue("custom-time-mode", this.timeMode);
         this.updateCustomDropdownValue("custom-weather-mode", this.weatherMode);
-        this.updateCustomDropdownValue("custom-font-select", this.fontSelect);
+        this.updateCustomDropdownValue("custom-widget-select", this.widgetSelect);
+        this.updateCustomDropdownValue("custom-temp-unit", this.tempUnit);
 
-        this.showClockCheckbox.checked = this.showClock;
         this.showCelestialCheckbox.checked = this.showCelestial;
         this.showWeatherCheckbox.checked = this.showWeather;
 
@@ -731,11 +915,45 @@ class SettingsManager {
         this.showDayCheckbox.checked = this.showDay;
         this.twelveHourCheckbox.checked = this.twelveHour;
 
-        const clockEl = document.getElementById("clock-container");
-        clockEl.style.opacity = this.showClock ? "1" : "0";
-        clockEl.style.pointerEvents = this.showClock ? "auto" : "none";
-        this.applyFont();
+        this.applyWidget();
         this.updateWeatherLogic();
+    }
+
+    // Show/hide widget containers based on widgetSelect
+    applyWidget() {
+        const clockEl = document.getElementById("clock-container");
+        const weatherEl = document.getElementById("weather-widget");
+
+        const showClock = this.widgetSelect === "clock";
+        const showWeather = this.widgetSelect === "weather";
+
+        clockEl.style.opacity = showClock ? "1" : "0";
+        clockEl.style.pointerEvents = showClock ? "auto" : "none";
+
+        if (weatherEl) {
+            weatherEl.style.opacity = showWeather ? "1" : "0";
+            weatherEl.style.pointerEvents = showWeather ? "auto" : "none";
+            if (showWeather) this.app.weatherAPI.fetchForWidget();
+        }
+        updateInteractiveRegion(false);
+    }
+
+    _resetWidgetTabs() {
+        document.querySelectorAll("#widget-overlay .widget-tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll("#widget-overlay .widget-tab-panel").forEach(p => p.classList.remove("active"));
+        const defaultBtn = document.querySelector("#widget-overlay .widget-tab-btn[data-tab='details']");
+        const defaultPanel = document.getElementById("widget-tab-details");
+        if (defaultBtn) defaultBtn.classList.add("active");
+        if (defaultPanel) defaultPanel.classList.add("active");
+    }
+
+    _resetWeatherTabs() {
+        document.querySelectorAll("#weather-popup-overlay .widget-tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll("#weather-popup-overlay .widget-tab-panel").forEach(p => p.classList.remove("active"));
+        const defaultBtn = document.querySelector("#weather-popup-overlay .widget-tab-btn[data-tab='details']");
+        const defaultPanel = document.getElementById("weather-tab-details");
+        if (defaultBtn) defaultBtn.classList.add("active");
+        if (defaultPanel) defaultPanel.classList.add("active");
     }
 
     setupCustomDropdown(id, onChangeCallback) {
@@ -792,16 +1010,6 @@ class SettingsManager {
                 opt.classList.remove("selected");
             }
         });
-    }
-
-    applyFont() {
-        const font = this.fontSelect;
-        document.getElementById("clock-container").style.fontFamily = `"${font}", sans-serif`;
-        const widgetPreviewClock = document.getElementById("widget-preview-clock");
-        const widgetPreviewDate = document.getElementById("widget-preview-date");
-        if (widgetPreviewClock) widgetPreviewClock.style.fontFamily = `"${font}", sans-serif`;
-        if (widgetPreviewDate) widgetPreviewDate.style.fontFamily = `"${font}", sans-serif`;
-        document.querySelector("h2").style.fontFamily = `"${font}", sans-serif`;
     }
 
     updateWeatherLogic() {
@@ -1011,7 +1219,7 @@ class TimeController {
     }
 
     updateClockDisplay(realTime) {
-        if (!this.app.settings.showClock) return;
+        // Always update #year (sky text) regardless of widget selection
 
         // Format year
         const yearFormatter = new Intl.DateTimeFormat('en-US', { year: 'numeric' });
@@ -1062,6 +1270,48 @@ class TimeController {
         const previewDate = document.getElementById("widget-preview-date");
         if (previewClock) previewClock.textContent = clockStr;
         if (previewDate) previewDate.textContent = dateStr;
+
+        // Populate Details tab live fields
+        const detailDate = document.getElementById("detail-full-date");
+        if (detailDate) {
+            detailDate.textContent = new Intl.DateTimeFormat('en-US', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            }).format(realTime);
+        }
+
+        const detailTz = document.getElementById("detail-timezone");
+        if (detailTz) {
+            const tzName = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+            detailTz.textContent = `${tzName} (System)`;
+        }
+
+        const detailOffset = document.getElementById("detail-utc-offset");
+        if (detailOffset) {
+            const offsetMin = realTime.getTimezoneOffset();
+            const sign = offsetMin <= 0 ? "+" : "-";
+            const abs = Math.abs(offsetMin);
+            const oh = String(Math.floor(abs / 60)).padStart(2, "0");
+            const om = String(abs % 60).padStart(2, "0");
+            detailOffset.textContent = `UTC${sign}${oh}:${om}`;
+        }
+
+        const detailWeek = document.getElementById("detail-week-number");
+        if (detailWeek) {
+            const d = new Date(realTime);
+            d.setHours(0, 0, 0, 0);
+            d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+            const yearStart = new Date(d.getFullYear(), 0, 1);
+            const wn = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            detailWeek.textContent = `Week ${wn} of ${realTime.getFullYear()}`;
+        }
+
+        const detailDoy = document.getElementById("detail-day-of-year");
+        if (detailDoy) {
+            const start = new Date(realTime.getFullYear(), 0, 0);
+            const doy = Math.floor((realTime - start) / 86400000);
+            const total = (realTime.getFullYear() % 4 === 0) ? 366 : 365;
+            detailDoy.textContent = `Day ${doy} of ${total}`;
+        }
     }
 }
 

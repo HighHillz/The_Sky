@@ -7,9 +7,9 @@ All notable changes to this project will be noted here.
 ### [3.2.0] - Under Dev
 This update focuses mainly on widgets. The settings panel has been improved and an about popup has been added. The clock has become a dedicated widget, introducing the widget card pattern. Implemented widgets include:
 - Clock
+- Weather
 
 Upcoming widgets in plan:
-- Weather
 - Current Music (Spotify)
 - Machine Disk Storage
 - WiFi Stats

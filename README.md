@@ -36,14 +36,13 @@ An advanced, immersive, and highly interactive live wallpaper simulation built w
 A sleek, centered glassmorphic popup modal featuring backdrop blur and micro-animations that allows full customization. An **About** screen — accessible via the info icon in the settings header — displays project details, version, and key capabilities:
 * **Time Override**: Simulate different phases of the day (Auto, Sunrise, Day, Sunset, Night).
 * **Weather Override**: Manually override live weather with Clear, Rain, Snow, or Cloudy presets.
-* **Typography Selector**: Choose from different typography styles including *Poppins*, *Montserrat*, *Playfair Display*, and *Orbitron (Digital)*.
 * **Element Toggles**: Individually show or hide the Clock & Date, Sun & Moon, and Weather Effects.
 * **LocalStorage Persistence**: Saves all configuration choices so they persist between page reloads.
 
-### 6. Clock Widget
-The clock and date display has been elevated into an interactive widget card. Clicking the card opens a dedicated widget popup featuring a live preview clock and additional controls:
-* **12/24-Hour Toggle**: Switch between 12-hour and 24-hour clock formats.
-* **Day of Week Toggle**: Show or hide the day of the week in the date line.
+### 6. Widgets
+The wallpaper features interactive widget cards. Clicking a card opens a dedicated details and customization popup panel:
+* **Clock Widget**: Shows detailed system time info (timezone, day of year). Includes a customization tab to toggle 12/24-hour formats and day-of-week display.
+* **Weather Widget**: Shows detailed live weather metrics (relative humidity, wind speed, daily min/max range). Includes a customization tab to switch between Celsius (°C) and Fahrenheit (°F) units.
 
 ## 🚀 How to Run
 

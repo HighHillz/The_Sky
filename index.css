@@ -205,6 +205,105 @@ h2 {
   z-index: 1;
 }
 
+/* Weather Widget - same glass card as clock, clickable */
+#weather-widget {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px 12px;
+  background: rgba(15, 18, 36, 0.45);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+  position: fixed;
+  width: 230px;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  cursor: pointer;
+  transition: opacity 0.5s ease, background 0.3s, transform 0.3s;
+}
+
+#weather-widget:hover {
+  background: rgba(15, 18, 36, 0.65);
+  transform: scale(1.02);
+}
+
+#weather-widget:active {
+  transform: scale(0.98);
+}
+
+#weather-widget-icon {
+  font-size: 2rem;
+  color: #f0cc00;
+  filter: drop-shadow(0 0 8px rgba(240, 204, 0, 0.45));
+  flex-shrink: 0;
+  width: 2rem;
+  text-align: center;
+}
+
+.weather-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+#weather-widget-temp {
+  font-size: 1.78rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+#weather-widget-location {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Weather Preview Card (Customize Tab) */
+
+#weather-preview-icon {
+  font-size: 2rem;
+  color: #f0cc00;
+  filter: drop-shadow(0 0 8px rgba(240, 204, 0, 0.45));
+  flex-shrink: 0;
+  width: 2rem;
+  text-align: center;
+}
+
+#weather-preview-temp {
+  font-size: 1.78rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+#weather-preview-location {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
 /* Settings Controls - Gear Icon */
 #settings-toggle {
   position: fixed;
@@ -323,8 +422,7 @@ h2 {
 .settings-body {
   flex: 1;
   padding: 24px;
-  overflow-x: visible;
-  overflow-y: auto;
+  overflow: visible;
   display: flex;
   flex-direction: row;
   gap: 28px;
@@ -439,7 +537,10 @@ h2 {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: rgba(8, 9, 18, 0.4);
+  position: relative;
+  z-index: 1;
+  background: rgba(15, 18, 36, 0.45);
+  border-radius: 0 0 24px 24px;
 }
 
 #weather-status {
@@ -660,15 +761,17 @@ h2 {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 14px 18px 12px;
   background: rgba(0, 0, 0, 0.2);
   border-radius: 16px;
-  margin-bottom: 24px;
+  margin: 0 auto 24px;
   border: 1px solid rgba(255, 255, 255, 0.05);
+  width: 230px;
+  transform: scale(1.15);
 }
 
 #widget-preview-clock {
-  font-size: 2.8rem;
+  font-size: 1.78rem;
   font-weight: 700;
   letter-spacing: 1px;
   line-height: 1;
@@ -677,12 +780,104 @@ h2 {
 }
 
 #widget-preview-date {
-  font-size: 0.95rem;
+  font-size: 0.78rem;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.7);
-  margin-top: 10px;
+  margin-top: 6px;
   letter-spacing: 0.4px;
   font-family: inherit;
+}
+
+/* Widget popup tab panels */
+.widget-tab-panels {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.widget-tab-panel {
+  display: none;
+  height: 100%;
+}
+
+.widget-tab-panel.active {
+  display: flex;
+  flex-direction: column;
+}
+
+.widget-tab-panel .settings-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Bottom pill toggle */
+.widget-tab-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 24px 24px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.widget-tab-btn {
+  flex: 1;
+  padding: 8px 0;
+  font-size: 0.84rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: rgba(255, 255, 255, 0.45);
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: color 0.25s ease, background 0.25s ease;
+  letter-spacing: 0.3px;
+}
+
+.widget-tab-btn.active {
+  color: #000000;
+  background: #f0cc00;
+}
+
+.widget-tab-btn:not(.active):hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Details tab rows */
+.widget-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+
+.widget-detail-icon {
+  font-size: 1rem;
+  color: #f0cc00;
+  margin-top: 2px;
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 4px rgba(240, 204, 0, 0.3));
+}
+
+.widget-detail-label {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 3px;
+}
+
+.widget-detail-desc {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.5;
 }
 
 /* Custom Dropdown Selector Styling */
@@ -736,7 +931,7 @@ h2 {
   pointer-events: none;
   transform: translateY(-10px);
   transition: all 0.2s ease;
-  z-index: 100;
+  z-index: 9999;
 }
 
 .custom-select.open .custom-select-options {

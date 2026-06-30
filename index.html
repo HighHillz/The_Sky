@@ -5,10 +5,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Sky - Dynamic Wallpaper</title>
-    <link rel="stylesheet" href="index.css?v=5" />
+    <link rel="stylesheet" href="index.css?v=26" />
     <!-- Google Fonts -->
-    <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&family=Orbitron:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Poppins:wght@400;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap">
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -24,8 +23,15 @@
     <!-- Top-Left Corner: Clock and Date -->
     <div id="extra">
         <div id="clock-container">
-            <div id="clock">15:17:32</div>
-            <div id="date">Friday, June 5, 2026</div>
+            <div id="clock">--</div>
+            <div id="date">--</div>
+        </div>
+        <div id="weather-widget">
+            <i id="weather-widget-icon" class="fas fa-cloud-sun"></i>
+            <div class="weather-text">
+                <div id="weather-widget-temp">--</div>
+                <div id="weather-widget-location">--</div>
+            </div>
         </div>
     </div>
 
@@ -76,27 +82,22 @@
                     </div>
 
                     <div class="setting-group">
-                        <label>Typography Font</label>
-                        <div class="custom-select" id="custom-font-select">
-                            <div class="custom-select-trigger"><span>Poppins</span><i class="fas fa-chevron-down"></i>
-                            </div>
+                        <label>Widget</label>
+                        <div class="custom-select" id="custom-widget-select">
+                            <div class="custom-select-trigger"><span>Clock &amp; Date</span><i
+                                    class="fas fa-chevron-down"></i></div>
                             <div class="custom-select-options">
-                                <div class="custom-option" data-value="Poppins">Poppins</div>
-                                <div class="custom-option" data-value="Montserrat">Montserrat</div>
-                                <div class="custom-option" data-value="Playfair Display">Playfair Display</div>
-                                <div class="custom-option" data-value="Orbitron">Orbitron (Digital)</div>
+                                <div class="custom-option" data-value="none">None</div>
+                                <div class="custom-option selected" data-value="clock">Clock &amp; Date</div>
+                                <div class="custom-option" data-value="weather">Weather</div>
                             </div>
                         </div>
                     </div>
+
                 </div>
 
                 <div class="settings-column">
                     <label class="column-header">Display Toggles</label>
-                    <div class="setting-group checkbox-group">
-                        <input type="checkbox" id="show-clock" checked>
-                        <label for="show-clock">Show Clock & Date</label>
-                    </div>
-
                     <div class="setting-group checkbox-group">
                         <input type="checkbox" id="show-celestial" checked>
                         <label for="show-celestial">Show Sun & Moon</label>
@@ -147,7 +148,7 @@
 
     <!-- Glassmorphic Clock/Widget Details Popup -->
     <div id="widget-overlay" class="settings-overlay">
-        <div id="widget-panel" class="settings-panel" style="max-width: 440px;">
+        <div id="widget-panel" class="settings-panel" style="max-width: 440px; height: 480px;">
             <div class="settings-header" style="padding: 24px 24px 14px;">
                 <h3>Clock</h3>
                 <div class="header-actions">
@@ -155,31 +156,161 @@
                             class="fas fa-times"></i></button>
                 </div>
             </div>
-            <div class="settings-body"
-                style="padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 20px;">
-                <!-- Large clock display inside the popup -->
-                <div class="widget-preview-container" style="margin-bottom: 12px;">
-                    <div id="widget-preview-clock"></div>
-                    <div id="widget-preview-date"></div>
+
+            <!-- Tab panels -->
+            <div class="widget-tab-panels">
+
+                <!-- Details tab — live current-time info -->
+                <div class="widget-tab-panel active" id="widget-tab-details">
+                    <div class="settings-body"
+                        style="padding: 20px 24px 16px; display: flex; flex-direction: column; gap: 10px;">
+                        <div class="widget-detail-row">
+                            <i class="fas fa-calendar-day widget-detail-icon"></i>
+                            <div>
+                                <div class="widget-detail-label">Date</div>
+                                <div class="widget-detail-desc" id="detail-full-date">--</div>
+                            </div>
+                        </div>
+                        <div class="widget-detail-row">
+                            <i class="fas fa-globe widget-detail-icon"></i>
+                            <div>
+                                <div class="widget-detail-label">Timezone</div>
+                                <div class="widget-detail-desc" id="detail-timezone">--</div>
+                            </div>
+                        </div>
+                        <div class="widget-detail-row">
+                            <i class="fas fa-list-ol widget-detail-icon"></i>
+                            <div>
+                                <div class="widget-detail-label">Day of Year</div>
+                                <div class="widget-detail-desc" id="detail-day-of-year">--</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- System Timezone displayed under the clock card -->
-                <div id="widget-system-timezone"
-                    style="text-align: center; font-size: 0.8rem; font-style: italic; color: rgba(255, 255, 255, 0.55); margin-top: -12px; margin-bottom: 8px;">
-                    UTC (System)</div>
-
-                <div class="setting-group checkbox-group">
-                    <input type="checkbox" id="widget-twelve-hour">
-                    <label for="widget-twelve-hour">Use 12-Hour Format</label>
+                <!-- Customize tab — preview card + options only -->
+                <div class="widget-tab-panel" id="widget-tab-customize">
+                    <div class="settings-body"
+                        style="padding: 20px 24px 16px; display: flex; flex-direction: column; gap: 20px;">
+                        <div class="widget-preview-container">
+                            <div id="widget-preview-clock">--</div>
+                            <div id="widget-preview-date">--</div>
+                        </div>
+                        <div class="setting-group checkbox-group">
+                            <input type="checkbox" id="widget-twelve-hour">
+                            <label for="widget-twelve-hour">Use 12-Hour Format</label>
+                        </div>
+                        <div class="setting-group checkbox-group">
+                            <input type="checkbox" id="widget-show-day" checked>
+                            <label for="widget-show-day">Show Day of Week</label>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="setting-group checkbox-group">
-                    <input type="checkbox" id="widget-show-day" checked>
-                    <label for="widget-show-day">Show Day of Week</label>
-                </div>
             </div>
+
+            <!-- Bottom pill toggle -->
+            <div class="widget-tab-toggle">
+                <button class="widget-tab-btn active" data-tab="details">Details</button>
+                <button class="widget-tab-btn" data-tab="customize">Customize</button>
+            </div>
+
         </div>
     </div>
+
+    <!-- Glassmorphic Weather Details Popup -->
+    <div id="weather-popup-overlay" class="settings-overlay">
+        <div id="weather-popup-panel" class="settings-panel" style="max-width: 440px; height: 480px;">
+            <div class="settings-header" style="padding: 24px 24px 14px;">
+                <h3>Weather</h3>
+                <div class="header-actions">
+                    <button id="weather-popup-close" class="popup-close" aria-label="Close Weather Settings"><i
+                            class="fas fa-times"></i></button>
+                </div>
+            </div>
+
+            <!-- Tab panels -->
+            <div class="widget-tab-panels">
+
+                <!-- Details tab — live weather info -->
+                <div class="widget-tab-panel active" id="weather-tab-details">
+                    <div class="settings-body"
+                        style="padding: 20px 24px 16px; display: flex; flex-direction: column; gap: 10px;">
+                        <div class="widget-detail-row">
+                            <i id="weather-detail-condition-icon" class="fas fa-cloud-sun widget-detail-icon"></i>
+                            <div>
+                                <div class="widget-detail-label">Condition</div>
+                                <div class="widget-detail-desc" id="weather-detail-condition">--</div>
+                            </div>
+                        </div>
+                        <div class="widget-detail-row">
+                            <i class="fas fa-map-marker-alt widget-detail-icon"></i>
+                            <div>
+                                <div class="widget-detail-label">Temperature &amp; Location</div>
+                                <div class="widget-detail-desc" id="weather-detail-temp-loc">--</div>
+                            </div>
+                        </div>
+                        <div class="widget-detail-row">
+                            <i class="fas fa-temperature-high widget-detail-icon"></i>
+                            <div>
+                                <div class="widget-detail-label">Daily Range</div>
+                                <div class="widget-detail-desc" id="weather-detail-range">↑ -- &nbsp;↓ --</div>
+                            </div>
+                        </div>
+                        <div class="widget-detail-row">
+                            <i class="fas fa-tint widget-detail-icon"></i>
+                            <div>
+                                <div class="widget-detail-label">Humidity</div>
+                                <div class="widget-detail-desc" id="weather-detail-humidity">--</div>
+                            </div>
+                        </div>
+                        <div class="widget-detail-row">
+                            <i class="fas fa-wind widget-detail-icon"></i>
+                            <div>
+                                <div class="widget-detail-label">Wind Speed</div>
+                                <div class="widget-detail-desc" id="weather-detail-wind">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customize tab — preview card + options only -->
+                <div class="widget-tab-panel" id="weather-tab-customize">
+                    <div class="settings-body"
+                        style="padding: 20px 24px 16px; display: flex; flex-direction: column; gap: 20px;">
+                        <div class="widget-preview-container" id="weather-preview-container"
+                            style="flex-direction: row; gap: 14px;">
+                            <i id="weather-preview-icon" class="fas fa-cloud-sun"></i>
+                            <div class="weather-text">
+                                <div id="weather-preview-temp">--</div>
+                                <div id="weather-preview-location">--</div>
+                            </div>
+                        </div>
+                        <div class="setting-group">
+                            <label>Temperature Unit</label>
+                            <div class="custom-select" id="custom-temp-unit">
+                                <div class="custom-select-trigger"><span>Celsius (°C)</span><i
+                                        class="fas fa-chevron-down"></i></div>
+                                <div class="custom-select-options">
+                                    <div class="custom-option selected" data-value="C">Celsius (°C)</div>
+                                    <div class="custom-option" data-value="F">Fahrenheit (°F)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Bottom pill toggle -->
+            <div class="widget-tab-toggle">
+                <button class="widget-tab-btn active" data-tab="details">Details</button>
+                <button class="widget-tab-btn" data-tab="customize">Customize</button>
+            </div>
+
+        </div>
+    </div>
+
 
     <section>
         <p id="sun"></p>
@@ -188,7 +319,7 @@
         <div id="bday"></div>
     </section>
 
-    <script src="index.js?v=5"></script>
+    <script src="index.js?v=26"></script>
 </body>
 
 </html>
