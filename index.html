@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>The Sky - Dynamic Wallpaper</title>
-    <link rel="stylesheet" href="index.css?v=26" />
+    <link rel="stylesheet" href="index.css?v=31" />
     <!-- Google Fonts -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap">
     <!-- FontAwesome Icons -->
@@ -20,7 +20,7 @@
     <!-- Canvas for weather effects (rain, snow, clouds, shooting stars) -->
     <canvas id="weather-canvas"></canvas>
 
-    <!-- Top-Left Corner: Clock and Date -->
+    <!-- Top-Left Corner: Clock, Date, and Storage Widget -->
     <div id="extra">
         <div id="clock-container">
             <div id="clock">--</div>
@@ -31,6 +31,22 @@
             <div class="weather-text">
                 <div id="weather-widget-temp">--</div>
                 <div id="weather-widget-location">--</div>
+            </div>
+        </div>
+        <!-- Storage Widget Card -->
+        <div id="storage-widget">
+            <div class="storage-ring-wrap">
+                <svg class="storage-ring-svg" viewBox="0 0 72 72">
+                    <circle class="storage-ring-bg" cx="36" cy="36" r="28" />
+                    <circle id="storage-ring-arc" class="storage-ring-arc" cx="36" cy="36" r="28" />
+                </svg>
+                <div class="storage-ring-center">
+                    <div id="storage-ring-label">--</div>
+                </div>
+            </div>
+            <div class="storage-text">
+                <div id="storage-widget-used">-- / --</div>
+                <div id="storage-widget-label">System Storage</div>
             </div>
         </div>
     </div>
@@ -90,6 +106,7 @@
                                 <div class="custom-option" data-value="none">None</div>
                                 <div class="custom-option selected" data-value="clock">Clock &amp; Date</div>
                                 <div class="custom-option" data-value="weather">Weather</div>
+                                <div class="custom-option" data-value="storage">Storage</div>
                             </div>
                         </div>
                     </div>
@@ -148,169 +165,145 @@
 
     <!-- Glassmorphic Clock/Widget Details Popup -->
     <div id="widget-overlay" class="settings-overlay">
-        <div id="widget-panel" class="settings-panel" style="max-width: 440px; height: 480px;">
+        <div id="widget-panel" class="settings-panel" style="max-width: 440px; height: 360px;">
             <div class="settings-header" style="padding: 24px 24px 14px;">
-                <h3>Clock</h3>
+                <h3>Clock Settings</h3>
                 <div class="header-actions">
                     <button id="widget-close" class="popup-close" aria-label="Close Clock Settings"><i
                             class="fas fa-times"></i></button>
                 </div>
             </div>
 
-            <!-- Tab panels -->
-            <div class="widget-tab-panels">
-
-                <!-- Details tab — live current-time info -->
-                <div class="widget-tab-panel active" id="widget-tab-details">
-                    <div class="settings-body"
-                        style="padding: 20px 24px 16px; display: flex; flex-direction: column; gap: 10px;">
-                        <div class="widget-detail-row">
-                            <i class="fas fa-calendar-day widget-detail-icon"></i>
-                            <div>
-                                <div class="widget-detail-label">Date</div>
-                                <div class="widget-detail-desc" id="detail-full-date">--</div>
-                            </div>
-                        </div>
-                        <div class="widget-detail-row">
-                            <i class="fas fa-globe widget-detail-icon"></i>
-                            <div>
-                                <div class="widget-detail-label">Timezone</div>
-                                <div class="widget-detail-desc" id="detail-timezone">--</div>
-                            </div>
-                        </div>
-                        <div class="widget-detail-row">
-                            <i class="fas fa-list-ol widget-detail-icon"></i>
-                            <div>
-                                <div class="widget-detail-label">Day of Year</div>
-                                <div class="widget-detail-desc" id="detail-day-of-year">--</div>
-                            </div>
-                        </div>
-                    </div>
+            <div class="settings-body"
+                style="padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 20px;">
+                <div class="widget-preview-container">
+                    <div id="widget-preview-clock">--</div>
+                    <div id="widget-preview-date">--</div>
                 </div>
-
-                <!-- Customize tab — preview card + options only -->
-                <div class="widget-tab-panel" id="widget-tab-customize">
-                    <div class="settings-body"
-                        style="padding: 20px 24px 16px; display: flex; flex-direction: column; gap: 20px;">
-                        <div class="widget-preview-container">
-                            <div id="widget-preview-clock">--</div>
-                            <div id="widget-preview-date">--</div>
-                        </div>
-                        <div class="setting-group checkbox-group">
-                            <input type="checkbox" id="widget-twelve-hour">
-                            <label for="widget-twelve-hour">Use 12-Hour Format</label>
-                        </div>
-                        <div class="setting-group checkbox-group">
-                            <input type="checkbox" id="widget-show-day" checked>
-                            <label for="widget-show-day">Show Day of Week</label>
-                        </div>
-                    </div>
+                <div class="setting-group checkbox-group">
+                    <input type="checkbox" id="widget-twelve-hour">
+                    <label for="widget-twelve-hour">Use 12-Hour Format</label>
                 </div>
-
+                <div class="setting-group checkbox-group">
+                    <input type="checkbox" id="widget-show-day" checked>
+                    <label for="widget-show-day">Show Day of Week</label>
+                </div>
             </div>
-
-            <!-- Bottom pill toggle -->
-            <div class="widget-tab-toggle">
-                <button class="widget-tab-btn active" data-tab="details">Details</button>
-                <button class="widget-tab-btn" data-tab="customize">Customize</button>
-            </div>
-
         </div>
     </div>
 
     <!-- Glassmorphic Weather Details Popup -->
     <div id="weather-popup-overlay" class="settings-overlay">
-        <div id="weather-popup-panel" class="settings-panel" style="max-width: 440px; height: 480px;">
+        <div id="weather-popup-panel" class="settings-panel" style="max-width: 440px; height: 360px;">
             <div class="settings-header" style="padding: 24px 24px 14px;">
-                <h3>Weather</h3>
+                <h3>Weather Settings</h3>
                 <div class="header-actions">
                     <button id="weather-popup-close" class="popup-close" aria-label="Close Weather Settings"><i
                             class="fas fa-times"></i></button>
                 </div>
             </div>
 
-            <!-- Tab panels -->
-            <div class="widget-tab-panels">
-
-                <!-- Details tab — live weather info -->
-                <div class="widget-tab-panel active" id="weather-tab-details">
-                    <div class="settings-body"
-                        style="padding: 20px 24px 16px; display: flex; flex-direction: column; gap: 10px;">
-                        <div class="widget-detail-row">
-                            <i id="weather-detail-condition-icon" class="fas fa-cloud-sun widget-detail-icon"></i>
-                            <div>
-                                <div class="widget-detail-label">Condition</div>
-                                <div class="widget-detail-desc" id="weather-detail-condition">--</div>
-                            </div>
+            <div class="settings-body"
+                style="padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 20px;">
+                <div class="widget-preview-container" id="weather-preview-container"
+                    style="flex-direction: row; gap: 14px;">
+                    <i id="weather-preview-icon" class="fas fa-cloud-sun"></i>
+                    <div class="weather-text">
+                        <div id="weather-preview-temp">--</div>
+                        <div id="weather-preview-location">--</div>
+                    </div>
+                </div>
+                <div class="setting-group">
+                    <label>Temperature Unit</label>
+                    <div class="custom-select" id="custom-temp-unit">
+                        <div class="custom-select-trigger"><span>Celsius (°C)</span><i class="fas fa-chevron-down"></i>
                         </div>
-                        <div class="widget-detail-row">
-                            <i class="fas fa-map-marker-alt widget-detail-icon"></i>
-                            <div>
-                                <div class="widget-detail-label">Temperature &amp; Location</div>
-                                <div class="widget-detail-desc" id="weather-detail-temp-loc">--</div>
-                            </div>
-                        </div>
-                        <div class="widget-detail-row">
-                            <i class="fas fa-temperature-high widget-detail-icon"></i>
-                            <div>
-                                <div class="widget-detail-label">Daily Range</div>
-                                <div class="widget-detail-desc" id="weather-detail-range">↑ -- &nbsp;↓ --</div>
-                            </div>
-                        </div>
-                        <div class="widget-detail-row">
-                            <i class="fas fa-tint widget-detail-icon"></i>
-                            <div>
-                                <div class="widget-detail-label">Humidity</div>
-                                <div class="widget-detail-desc" id="weather-detail-humidity">--</div>
-                            </div>
-                        </div>
-                        <div class="widget-detail-row">
-                            <i class="fas fa-wind widget-detail-icon"></i>
-                            <div>
-                                <div class="widget-detail-label">Wind Speed</div>
-                                <div class="widget-detail-desc" id="weather-detail-wind">--</div>
-                            </div>
+                        <div class="custom-select-options">
+                            <div class="custom-option selected" data-value="C">Celsius (°C)</div>
+                            <div class="custom-option" data-value="F">Fahrenheit (°F)</div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Customize tab — preview card + options only -->
-                <div class="widget-tab-panel" id="weather-tab-customize">
-                    <div class="settings-body"
-                        style="padding: 20px 24px 16px; display: flex; flex-direction: column; gap: 20px;">
-                        <div class="widget-preview-container" id="weather-preview-container"
-                            style="flex-direction: row; gap: 14px;">
-                            <i id="weather-preview-icon" class="fas fa-cloud-sun"></i>
-                            <div class="weather-text">
-                                <div id="weather-preview-temp">--</div>
-                                <div id="weather-preview-location">--</div>
-                            </div>
-                        </div>
-                        <div class="setting-group">
-                            <label>Temperature Unit</label>
-                            <div class="custom-select" id="custom-temp-unit">
-                                <div class="custom-select-trigger"><span>Celsius (°C)</span><i
-                                        class="fas fa-chevron-down"></i></div>
-                                <div class="custom-select-options">
-                                    <div class="custom-option selected" data-value="C">Celsius (°C)</div>
-                                    <div class="custom-option" data-value="F">Fahrenheit (°F)</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
             </div>
-
-            <!-- Bottom pill toggle -->
-            <div class="widget-tab-toggle">
-                <button class="widget-tab-btn active" data-tab="details">Details</button>
-                <button class="widget-tab-btn" data-tab="customize">Customize</button>
-            </div>
-
         </div>
     </div>
 
+
+    <!-- Glassmorphic Storage Widget Popup (wide, disk details) -->
+    <div id="storage-popup-overlay" class="settings-overlay">
+        <div id="storage-popup-panel" class="settings-panel storage-popup-panel" style="width: 700px; height: 420px;">
+            <div class="settings-header" style="padding: 24px 28px 14px;">
+                <div class="storage-popup-header-left">
+                    <h3>Storage</h3>
+                </div>
+                <div class="header-actions">
+                    <button id="storage-popup-close" class="popup-close" aria-label="Close Storage Details"><i
+                            class="fas fa-times"></i></button>
+                </div>
+            </div>
+
+            <div class="storage-details-body"
+                style="flex-direction: row; gap: 24px; padding: 10px 28px 28px; height: 330px;">
+                <!-- Left column: Customize options -->
+                <div class="storage-settings-left"
+                    style="width: 230px; display: flex; flex-direction: column; gap: 16px; flex-shrink: 0;">
+                    <!-- Preview card -->
+                    <div class="widget-preview-container storage-preview-card"
+                        style="width: 230px; margin: 0; padding: 16px; display: flex; flex-direction: column; gap: 12px; align-items: center;">
+                        <div class="storage-ring-wrap">
+                            <svg class="storage-ring-svg" viewBox="0 0 72 72">
+                                <circle class="storage-ring-bg" cx="36" cy="36" r="28" />
+                                <circle id="storage-preview-arc" class="storage-ring-arc" cx="36" cy="36" r="28" />
+                            </svg>
+                            <div class="storage-ring-center">
+                                <div id="storage-preview-label">--</div>
+                            </div>
+                        </div>
+                        <div class="storage-text" style="align-items: center;">
+                            <div id="storage-preview-used">-- / --</div>
+                            <div id="storage-preview-sublabel">System Storage</div>
+                        </div>
+                    </div>
+                    <!-- Display format option -->
+                    <div class="setting-group" style="margin: 0;">
+                        <label style="margin-bottom: 6px; font-size: 0.75rem;">Display Format</label>
+                        <div class="custom-select" id="custom-storage-display">
+                            <div class="custom-select-trigger"><span>Fraction</span><i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="custom-select-options">
+                                <div class="custom-option selected" data-value="fraction">Fraction</div>
+                                <div class="custom-option" data-value="remaining">Bytes Remaining</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right column: Disk list -->
+                <div class="storage-settings-right"
+                    style="flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;">
+                    <!-- Disk list (rendered by JS) -->
+                    <div id="storage-disk-list" class="storage-disk-list"
+                        style="padding: 0; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px;">
+                        <div class="storage-loading"><i class="fas fa-spinner fa-spin"></i> Loading disks…</div>
+                    </div>
+                </div>
+
+                <!-- Sub-panel: top-5 dirs for selected disk (hidden by default, covers the details body) -->
+                <div id="storage-dir-panel" class="storage-dir-panel hidden">
+                    <div class="storage-dir-header">
+                        <button id="storage-dir-back" class="storage-dir-back-btn" aria-label="Back to disk list">
+                            <i class="fas fa-arrow-left"></i>
+                        </button>
+                        <div>
+                            <div class="storage-dir-title" id="storage-dir-title">Directories</div>
+                            <div class="storage-dir-sub" id="storage-dir-sub">/</div>
+                        </div>
+                    </div>
+                    <div id="storage-dir-list" class="storage-dir-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <section>
         <p id="sun"></p>
@@ -319,7 +312,7 @@
         <div id="bday"></div>
     </section>
 
-    <script src="index.js?v=26"></script>
+    <script src="index.js?v=38"></script>
 </body>
 
 </html>

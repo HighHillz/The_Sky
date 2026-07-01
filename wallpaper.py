@@ -14,6 +14,9 @@ import os
 import sys
 import threading
 import subprocess
+import shutil
+import json
+import re
 
 WINDOW_TITLE = 'SkyWallpaperBackend'
 
@@ -171,6 +174,119 @@ class WallpaperAPI:
                 print(f"[wallpaper] Interactive region updated (is_open: {is_open}, rects={rects})")
             except Exception as e:
                 print(f"[wallpaper] Failed to update interactive shape: {e}")
+
+    def get_storage_info(self):
+        """Returns a list of disk partitions with usage statistics."""
+        results = []
+        seen_devices = set()
+        
+        try:
+            with open('/proc/mounts', 'r') as f:
+                mounts = f.readlines()
+        except Exception:
+            mounts = []
+
+        # Fallback: check root if /proc/mounts is completely unavailable
+        if not mounts:
+            try:
+                usage = shutil.disk_usage('/')
+                results.append({
+                    'device': 'rootfs',
+                    'mountpoint': '/',
+                    'fstype': 'unknown',
+                    'total': usage.total,
+                    'used': usage.used,
+                    'free': usage.free,
+                    'percent': round((usage.used / usage.total * 100), 1) if usage.total > 0 else 0
+                })
+            except Exception:
+                pass
+            return json.dumps(results)
+
+        # Clean up and ignore virtual/system loop environments
+        skip_fstypes = {
+            'proc', 'sysfs', 'devtmpfs', 'tmpfs', 'devpts', 'cgroup',
+            'cgroup2', 'pstore', 'debugfs', 'securityfs', 'fusectl',
+            'hugetlbfs', 'mqueue', 'configfs', 'binfmt_misc', 'autofs',
+            'efivarfs', 'tracefs', 'ramfs', 'squashfs', 'overlay',
+            'nsfs', 'rpc_pipefs', 'nfsd'
+        }
+
+        for line in mounts:
+            parts = line.split()
+            if len(parts) < 3:
+                continue
+            device, mountpoint, fstype = parts[0], parts[1], parts[2]
+
+            if fstype in skip_fstypes or device in seen_devices:
+                continue
+            if not device.startswith('/dev/') or re.match(r'^/dev/loop', device):
+                continue
+
+            try:
+                usage = shutil.disk_usage(mountpoint)
+                if usage.total == 0:
+                    continue
+                
+                seen_devices.add(device)
+                results.append({
+                    'device': device,
+                    'mountpoint': mountpoint,
+                    'fstype': fstype,
+                    'total': usage.total,
+                    'used': usage.used,
+                    'free': usage.free,
+                    'percent': round((usage.used / usage.total * 100), 1)
+                })
+            except (PermissionError, OSError):
+                continue
+
+        # Sort: largest total storage capacity first
+        results.sort(key=lambda d: d['total'], reverse=True)
+        return json.dumps(results)
+
+    def get_disk_top_dirs(self, mountpoint):
+        """Returns top 5 directories directly under a mount point optimized for background speed."""
+        results = []
+        try:
+            # Optimization: Restrict filesystem bounding and use a size threshold (1MB+) to accelerate execution
+            cmd = ['du', '-x', '--max-depth=1', '--block-size=1', '-t', '1000000', mountpoint]
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+            
+            lines = proc.stdout.strip().split('\n')
+            dirs = []
+            
+            # Clean mountpoint comparisons for root tracking
+            normalized_mount = mountpoint if mountpoint == '/' else mountpoint.rstrip('/')
+            
+            # Skip directories that throw permission errors or don't make sense for users
+            ignored_paths = {'/proc', '/sys', '/dev', '/run', '/lost+found'}
+
+            for line in lines:
+                m = re.match(r'^(\d+)\s+(.+)$', line)
+                if not m:
+                    continue
+                
+                size = int(m.group(1))
+                path = m.group(2).strip()
+                
+                # Filter out parent mount references and hidden core system files
+                if path in ignored_paths or path == normalized_mount:
+                    continue
+                    
+                dirs.append({'path': path, 'size': size})
+                
+            # Sort out largest footprints and slice top 5
+            dirs.sort(key=lambda d: d['size'], reverse=True)
+            results = dirs[:5]
+            
+        except Exception as e:
+            print(f'[wallpaper] get_disk_top_dirs failed for {mountpoint}: {e}')
+            
+        return json.dumps(results)
+
+    def log(self, msg):
+        print(f"[JS LOG] {msg}")
 
 
 def send_to_background(window):

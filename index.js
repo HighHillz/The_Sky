@@ -4,8 +4,9 @@ function updateInteractiveRegion(isOpen) {
         const settingsOpen = document.getElementById("settings-overlay")?.classList.contains("open");
         const widgetOpen = document.getElementById("widget-overlay")?.classList.contains("open");
         const weatherOpen = document.getElementById("weather-popup-overlay")?.classList.contains("open");
+        const storageOpen = document.getElementById("storage-popup-overlay")?.classList.contains("open");
 
-        if (isOpen || settingsOpen || widgetOpen || weatherOpen) {
+        if (isOpen || settingsOpen || widgetOpen || weatherOpen || storageOpen) {
             window.pywebview.api.set_interactive_mode(true);
         } else {
             const rects = [];
@@ -25,6 +26,11 @@ function updateInteractiveRegion(isOpen) {
                 const r = weatherCard.getBoundingClientRect();
                 rects.push({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) });
             }
+            const storageCard = document.getElementById("storage-widget");
+            if (storageCard && window.getComputedStyle(storageCard).opacity === "1") {
+                const r = storageCard.getBoundingClientRect();
+                rects.push({ x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) });
+            }
             window.pywebview.api.set_interactive_mode(false, rects);
         }
     }
@@ -32,7 +38,38 @@ function updateInteractiveRegion(isOpen) {
 
 // Set initial clickable shape as soon as pywebview's JS bridge is ready
 window.addEventListener("pywebviewready", () => {
+    // Redirect console logs to python
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    const originalError = console.error;
+
+    console.log = function (...args) {
+        originalLog.apply(console, args);
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.log) {
+            window.pywebview.api.log(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+        }
+    };
+    console.warn = function (...args) {
+        originalWarn.apply(console, args);
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.log) {
+            window.pywebview.api.log('[WARN] ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+        }
+    };
+    console.error = function (...args) {
+        originalError.apply(console, args);
+        if (window.pywebview && window.pywebview.api && window.pywebview.api.log) {
+            window.pywebview.api.log('[ERROR] ' + args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+        }
+    };
+
+    console.log('JS console bridge initialized!');
     updateInteractiveRegion(false);
+    if (window.app && window.app.storageWidget) {
+        window.app.storageWidget.refresh();
+    }
+    document.addEventListener('click', (e) => {
+        console.log('[JS LOG] Document clicked! Target:', e.target.id || e.target.tagName, 'Class:', e.target.className, 'Path:', e.composedPath().map(el => el.id || el.tagName || 'window').join(' -> '));
+    });
 });
 
 // Canvas Star element for the night sky
@@ -622,10 +659,8 @@ class SettingsManager {
         this.showDay = true;
         this.tempUnit = "C";
 
-        this.loadSettings();
         this.initDOMReferences();
         this.initUIListeners();
-        this.applyAllSettings();
     }
 
     loadSettings() {
@@ -798,14 +833,12 @@ class SettingsManager {
         this.widgetCloseBtn.addEventListener("click", () => {
             this.widgetOverlay.classList.remove("open");
             updateInteractiveRegion(false);
-            this._resetWidgetTabs();
         });
 
         this.widgetOverlay.addEventListener("click", (e) => {
             if (e.target === this.widgetOverlay) {
                 this.widgetOverlay.classList.remove("open");
                 updateInteractiveRegion(false);
-                this._resetWidgetTabs();
             }
         });
 
@@ -822,37 +855,13 @@ class SettingsManager {
         this.weatherPopupCloseBtn.addEventListener("click", () => {
             this.weatherPopupOverlay.classList.remove("open");
             updateInteractiveRegion(false);
-            this._resetWeatherTabs();
         });
 
         this.weatherPopupOverlay.addEventListener("click", (e) => {
             if (e.target === this.weatherPopupOverlay) {
                 this.weatherPopupOverlay.classList.remove("open");
                 updateInteractiveRegion(false);
-                this._resetWeatherTabs();
             }
-        });
-
-        // Clock Widget popup tab toggle
-        document.querySelectorAll("#widget-overlay .widget-tab-btn").forEach(btn => {
-            btn.addEventListener("click", () => {
-                const tab = btn.dataset.tab;
-                document.querySelectorAll("#widget-overlay .widget-tab-btn").forEach(b => b.classList.remove("active"));
-                document.querySelectorAll("#widget-overlay .widget-tab-panel").forEach(p => p.classList.remove("active"));
-                btn.classList.add("active");
-                document.getElementById(`widget-tab-${tab}`).classList.add("active");
-            });
-        });
-
-        // Weather Widget popup tab toggle
-        document.querySelectorAll("#weather-popup-overlay .widget-tab-btn").forEach(btn => {
-            btn.addEventListener("click", () => {
-                const tab = btn.dataset.tab;
-                document.querySelectorAll("#weather-popup-overlay .widget-tab-btn").forEach(b => b.classList.remove("active"));
-                document.querySelectorAll("#weather-popup-overlay .widget-tab-panel").forEach(p => p.classList.remove("active"));
-                btn.classList.add("active");
-                document.getElementById(`weather-tab-${tab}`).classList.add("active");
-            });
         });
 
         // showDay and 12-hour format listeners on the widget details modal
@@ -891,7 +900,8 @@ class SettingsManager {
             const settingsOpen = this.overlay.classList.contains("open");
             const widgetOpen = this.widgetOverlay.classList.contains("open");
             const weatherOpen = this.weatherPopupOverlay.classList.contains("open");
-            if (!settingsOpen && !widgetOpen && !weatherOpen) {
+            const storageOpen = document.getElementById("storage-popup-overlay")?.classList.contains("open");
+            if (!settingsOpen && !widgetOpen && !weatherOpen && !storageOpen) {
                 updateInteractiveRegion(false);
             }
         });
@@ -926,6 +936,7 @@ class SettingsManager {
 
         const showClock = this.widgetSelect === "clock";
         const showWeather = this.widgetSelect === "weather";
+        const showStorage = this.widgetSelect === "storage";
 
         clockEl.style.opacity = showClock ? "1" : "0";
         clockEl.style.pointerEvents = showClock ? "auto" : "none";
@@ -935,26 +946,19 @@ class SettingsManager {
             weatherEl.style.pointerEvents = showWeather ? "auto" : "none";
             if (showWeather) this.app.weatherAPI.fetchForWidget();
         }
+
+        if (this.app.storageWidget) {
+            if (showStorage) {
+                this.app.storageWidget.show();
+            } else {
+                this.app.storageWidget.hide();
+            }
+        }
+
         updateInteractiveRegion(false);
     }
 
-    _resetWidgetTabs() {
-        document.querySelectorAll("#widget-overlay .widget-tab-btn").forEach(b => b.classList.remove("active"));
-        document.querySelectorAll("#widget-overlay .widget-tab-panel").forEach(p => p.classList.remove("active"));
-        const defaultBtn = document.querySelector("#widget-overlay .widget-tab-btn[data-tab='details']");
-        const defaultPanel = document.getElementById("widget-tab-details");
-        if (defaultBtn) defaultBtn.classList.add("active");
-        if (defaultPanel) defaultPanel.classList.add("active");
-    }
 
-    _resetWeatherTabs() {
-        document.querySelectorAll("#weather-popup-overlay .widget-tab-btn").forEach(b => b.classList.remove("active"));
-        document.querySelectorAll("#weather-popup-overlay .widget-tab-panel").forEach(p => p.classList.remove("active"));
-        const defaultBtn = document.querySelector("#weather-popup-overlay .widget-tab-btn[data-tab='details']");
-        const defaultPanel = document.getElementById("weather-tab-details");
-        if (defaultBtn) defaultBtn.classList.add("active");
-        if (defaultPanel) defaultPanel.classList.add("active");
-    }
 
     setupCustomDropdown(id, onChangeCallback) {
         const selectEl = document.getElementById(id);
@@ -1315,13 +1319,368 @@ class TimeController {
     }
 }
 
+// ── Storage Widget ────────────────────────────────────────────────────────────
+class StorageWidget {
+    constructor(app) {
+        this.app = app;
+        this.diskData = [];
+        this.displayFormat = 'fraction'; // 'fraction' | 'remaining'
+        this.refreshInterval = null;
+
+        // Load saved display format
+        try {
+            const saved = JSON.parse(localStorage.getItem('sky_wallpaper_settings') || '{}');
+            if (saved.storageDisplayFormat) {
+                this.displayFormat = saved.storageDisplayFormat;
+            } else {
+                this.displayFormat = 'fraction';
+            }
+        } catch (e) { }
+
+        this.initDOM();
+        this.initListeners();
+
+        // Refresh immediately if pywebview API is already available on startup
+        if (window.pywebview && window.pywebview.api) {
+            this.refresh();
+        }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    formatBytes(bytes) {
+        if (bytes >= 1e12) return (bytes / 1e12).toFixed(1) + ' TB';
+        if (bytes >= 1e9) return (bytes / 1e9).toFixed(1) + ' GB';
+        if (bytes >= 1e6) return (bytes / 1e6).toFixed(1) + ' MB';
+        return (bytes / 1e3).toFixed(0) + ' KB';
+    }
+
+    // Total across all real disks (de-duped by device already done in Python)
+    get systemTotals() {
+        let total = 0, used = 0;
+        this.diskData.forEach(d => { total += d.total; used += d.used; });
+        return { total, used, percent: total > 0 ? (used / total * 100) : 0 };
+    }
+
+    // Stroke dash-offset for circumference 175.9 (2π × 28)
+    pctToOffset(pct) {
+        const circ = 2 * Math.PI * 28; // ≈175.93
+        return circ - (circ * Math.min(pct, 100) / 100);
+    }
+
+    barClass(pct) {
+        if (pct >= 85) return 'high';
+        if (pct >= 60) return 'mid';
+        return 'low';
+    }
+
+    ringStrokeForPct(pct) {
+        if (pct >= 85) return '#ff6b6b';
+        if (pct >= 60) return '#63d1ff';
+        return 'url(#storageGrad)';
+    }
+
+    // ── DOM init ─────────────────────────────────────────────────────────────
+
+    initDOM() {
+        this.widgetEl = document.getElementById('storage-widget');
+        this.ringArc = document.getElementById('storage-ring-arc');
+        this.ringLabel = document.getElementById('storage-ring-label');
+        this.ringSub = document.getElementById('storage-ring-sub');
+        this.usedEl = document.getElementById('storage-widget-used');
+
+        this.popupOverlay = document.getElementById('storage-popup-overlay');
+        this.popupClose = document.getElementById('storage-popup-close');
+        this.diskList = document.getElementById('storage-disk-list');
+        this.dirPanel = document.getElementById('storage-dir-panel');
+        this.dirBack = document.getElementById('storage-dir-back');
+        this.dirTitle = document.getElementById('storage-dir-title');
+        this.dirSub = document.getElementById('storage-dir-sub');
+        this.dirList = document.getElementById('storage-dir-list');
+
+        this.previewArc = document.getElementById('storage-preview-arc');
+        this.previewLabel = document.getElementById('storage-preview-label');
+        this.previewSub = document.getElementById('storage-preview-sub');
+        this.previewUsed = document.getElementById('storage-preview-used');
+
+        // Inject SVG gradient defs into each ring SVG
+        const gradDef = `<defs><linearGradient id="storageGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#63d1ff"/>
+            <stop offset="100%" stop-color="#4fa3e0"/>
+        </linearGradient></defs>`;
+        document.querySelectorAll('.storage-ring-svg').forEach(svg => {
+            svg.insertAdjacentHTML('afterbegin', gradDef);
+        });
+    }
+
+    // ── Event listeners ───────────────────────────────────────────────────────
+
+    initListeners() {
+        // Widget card click → open popup
+        this.widgetEl.addEventListener('click', () => {
+            console.log('[Storage] Card clicked! widgetSelect:', this.app.settings.widgetSelect);
+            if (this.app.settings.widgetSelect !== 'storage') return;
+            this.popupOverlay.classList.add('open');
+            this.dirPanel.classList.add('hidden');
+            updateInteractiveRegion(true);
+            this.loadDisks();
+        });
+
+        // Close popup
+        this.popupClose.addEventListener('click', () => this.closePopup());
+        this.popupOverlay.addEventListener('click', (e) => {
+            if (e.target === this.popupOverlay) this.closePopup();
+        });
+
+        // Back button in dir sub-panel
+        this.dirBack.addEventListener('click', () => {
+            this.dirPanel.classList.add('hidden');
+        });
+
+        // Display format dropdown
+        this.app.settings.setupCustomDropdown('custom-storage-display', (val) => {
+            this.displayFormat = val;
+            this.saveDisplayFormat();
+            this.updateWidgetCard();
+        });
+
+        // Apply saved format to dropdown on start
+        this.app.settings.updateCustomDropdownValue('custom-storage-display', this.displayFormat);
+    }
+
+    saveDisplayFormat() {
+        try {
+            const saved = JSON.parse(localStorage.getItem('sky_wallpaper_settings') || '{}');
+            saved.storageDisplayFormat = this.displayFormat;
+            localStorage.setItem('sky_wallpaper_settings', JSON.stringify(saved));
+        } catch (e) { }
+    }
+
+    closePopup() {
+        this.popupOverlay.classList.remove('open');
+        this.dirPanel.classList.add('hidden');
+        updateInteractiveRegion(false);
+    }
+
+    // ── Data fetch ────────────────────────────────────────────────────────────
+
+    async fetchDiskData() {
+        if (!window.pywebview || !window.pywebview.api) {
+            // Mock fallback data for browser environment
+            this.diskData = [
+                { device: '/dev/nvme0n1p3', mountpoint: '/', fstype: 'ext4', total: 512000000000, used: 384000000000, free: 128000000000, percent: 75.0 },
+                { device: '/dev/nvme0n1p4', mountpoint: '/home', fstype: 'ext4', total: 1024000000000, used: 614400000000, free: 409600000000, percent: 60.0 },
+                { device: '/dev/sda1', mountpoint: '/mnt/backup', fstype: 'vfat', total: 256000000000, used: 51200000000, free: 204800000000, percent: 20.0 }
+            ];
+            return true;
+        }
+        try {
+            const json = await window.pywebview.api.get_storage_info();
+            this.diskData = JSON.parse(json);
+            console.log('[Storage] diskData loaded:', this.diskData);
+            return true;
+        } catch (e) {
+            console.warn('[Storage] fetchDiskData failed', e);
+            return false;
+        }
+    }
+
+    async fetchTopDirs(mountpoint) {
+        if (!window.pywebview || !window.pywebview.api) {
+            return [
+                { path: mountpoint + '/Downloads', size: 120000000000 },
+                { path: mountpoint + '/Documents', size: 85000000000 },
+                { path: mountpoint + '/Pictures', size: 45000000000 },
+                { path: mountpoint + '/Projects', size: 32000000000 },
+                { path: mountpoint + '/Videos', size: 12000000000 }
+            ];
+        }
+        try {
+            const json = await window.pywebview.api.get_disk_top_dirs(mountpoint);
+            return JSON.parse(json);
+        } catch (e) {
+            console.warn('[Storage] fetchTopDirs failed', e);
+            return [];
+        }
+    }
+
+    // ── Widget card render ────────────────────────────────────────────────────
+
+    updateWidgetCard() {
+        if (!this.diskData.length) return;
+        const { total, used, percent } = this.systemTotals;
+        console.log('[Storage] Card updating. Percent:', percent, 'Used:', used, 'Total:', total, 'Format:', this.displayFormat);
+        const circ = 2 * Math.PI * 28;
+        const offset = this.pctToOffset(percent);
+
+        // Ring
+        if (this.ringArc) {
+            this.ringArc.style.strokeDashoffset = offset;
+            this.ringArc.style.stroke = this.ringStrokeForPct(percent);
+        }
+
+        // Centre label
+        if (this.displayFormat === 'fraction') {
+            if (this.ringLabel) this.ringLabel.textContent = `${Math.round(percent)}%`;
+            if (this.ringSub) this.ringSub.textContent = 'used';
+            if (this.usedEl) this.usedEl.textContent = `${this.formatBytes(used)} / ${this.formatBytes(total)}`;
+        } else {
+            if (this.ringLabel) this.ringLabel.textContent = `${Math.round(percent)}%`;
+            if (this.ringSub) this.ringSub.textContent = 'used';
+            if (this.usedEl) this.usedEl.textContent = `${this.formatBytes(total - used)} free`;
+        }
+
+        // Preview card (customize tab)
+        if (this.previewArc) {
+            this.previewArc.style.strokeDashoffset = offset;
+            this.previewArc.style.stroke = this.ringStrokeForPct(percent);
+        }
+        if (this.displayFormat === 'fraction') {
+            if (this.previewLabel) this.previewLabel.textContent = `${Math.round(percent)}%`;
+            if (this.previewSub) this.previewSub.textContent = 'used';
+            if (this.previewUsed) this.previewUsed.textContent = `${this.formatBytes(used)} / ${this.formatBytes(total)}`;
+        } else {
+            if (this.previewLabel) this.previewLabel.textContent = `${Math.round(percent)}%`;
+            if (this.previewSub) this.previewSub.textContent = 'used';
+            if (this.previewUsed) this.previewUsed.textContent = `${this.formatBytes(total - used)} free`;
+        }
+        console.log('[Storage] DOM updated. ringLabel:', this.ringLabel ? this.ringLabel.textContent : 'null', 'usedEl:', this.usedEl ? this.usedEl.textContent : 'null');
+    }
+
+    // ── Popup disk list render ────────────────────────────────────────────────
+
+    async loadDisks() {
+        this.diskList.innerHTML = '<div class="storage-loading"><i class="fas fa-spinner fa-spin"></i> Loading disks…</div>';
+        const ok = await this.fetchDiskData();
+        if (!ok || !this.diskData.length) {
+            this.diskList.innerHTML = '<div class="storage-loading"><i class="fas fa-exclamation-circle"></i> No disk data available (requires pywebview)</div>';
+            return;
+        }
+        this.renderDiskList();
+        this.updateWidgetCard();
+    }
+
+    renderDiskList() {
+        this.diskList.innerHTML = '';
+        this.diskData.forEach(disk => {
+            const row = document.createElement('div');
+            row.className = 'storage-disk-row';
+            row.setAttribute('aria-label', `${disk.device} at ${disk.mountpoint}`);
+
+            const barCls = this.barClass(disk.percent);
+            const usedFmt = this.formatBytes(disk.used);
+            const totalFmt = this.formatBytes(disk.total);
+            const freeFmt = this.formatBytes(disk.free);
+
+            const primaryStat = `<span class="storage-disk-pct">${disk.percent}%</span>`;
+            const secondaryStat = this.displayFormat === 'fraction'
+                ? `<span class="storage-disk-bytes">${usedFmt} of ${totalFmt}</span>`
+                : `<span class="storage-disk-bytes">${freeFmt} free</span>`;
+
+            row.innerHTML = `
+            <div class="storage-disk-row-top">
+                <i class="fas fa-hdd storage-disk-icon"></i>
+                <div class="storage-disk-meta">
+                    <div class="storage-disk-device">${disk.device}</div>
+                    <div class="storage-disk-mount">${disk.mountpoint} &bull; ${disk.fstype}</div>
+                </div>
+                <div class="storage-disk-stats">
+                    ${primaryStat}
+                    ${secondaryStat}
+                </div>
+                <i class="fas fa-chevron-right storage-disk-arrow"></i>
+            </div>
+            <div class="storage-bar-wrap">
+                <div class="storage-bar-fill ${barCls}" style="width: ${disk.percent}%"></div>
+            </div>`;
+
+            row.addEventListener('click', () => this.openDirPanel(disk));
+            this.diskList.appendChild(row);
+        });
+    }
+
+    // ── Directory sub-panel ───────────────────────────────────────────────────
+
+    async openDirPanel(disk) {
+        this.dirTitle.textContent = `Top Directories`;
+        this.dirSub.textContent = disk.mountpoint;
+        this.dirList.innerHTML = '<div class="storage-dir-loading"><i class="fas fa-spinner fa-spin"></i> Scanning…</div>';
+
+        // UI Upgrade: Adding animation performance trigger classes
+        this.dirPanel.classList.remove('hidden');
+        this.dirPanel.classList.add('panel-active');
+
+        const dirs = await this.fetchTopDirs(disk.mountpoint);
+        this.renderDirList(dirs, disk.total);
+    }
+
+    renderDirList(dirs, diskTotal) {
+        this.dirList.innerHTML = '';
+        if (!dirs.length) {
+            this.dirList.innerHTML = '<div class="storage-dir-loading"><i class="fas fa-info-circle"></i> No data (may need root permissions)</div>';
+            return;
+        }
+
+        const maxSize = dirs[0].size;
+        dirs.forEach((dir, i) => {
+            const pct = maxSize > 0 ? Math.round((dir.size / maxSize) * 100) : 0;
+            const ofDisk = diskTotal > 0 ? ((dir.size / diskTotal) * 100).toFixed(1) : '?';
+
+            const row = document.createElement('div');
+            row.className = 'storage-dir-row';
+
+            // Custom transitions hook styling injection
+            row.style.animationDelay = `${i * 50}ms`;
+
+            row.innerHTML = `
+            <div class="storage-dir-row-top">
+                <span class="storage-dir-rank">#${i + 1}</span>
+                <span class="storage-dir-path" title="${dir.path}">${dir.path}</span>
+                <div class="storage-dir-spacer"></div>
+                <span class="storage-dir-size">${this.formatBytes(dir.size)}</span>
+                <span class="storage-disk-bytes text-dim">(${ofDisk}%)</span>
+            </div>`;
+            this.dirList.appendChild(row);
+        });
+    }
+
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+    show() {
+        this.widgetEl.style.opacity = '1';
+        this.widgetEl.style.pointerEvents = 'auto';
+        this.refresh();
+
+        if (!this.refreshInterval) {
+            this.refreshInterval = setInterval(() => this.refresh(), 60 * 1000);
+        }
+    }
+
+    hide() {
+        this.widgetEl.style.opacity = '0';
+        this.widgetEl.style.pointerEvents = 'none';
+        if (this.refreshInterval) {
+            clearInterval(this.refreshInterval);
+            this.refreshInterval = null;
+        }
+    }
+
+    async refresh() {
+        const ok = await this.fetchDiskData();
+        if (ok) this.updateWidgetCard();
+    }
+}
+
 // Master Wallpaper App class
 class WallpaperApp {
     constructor() {
         this.weatherEngine = new WeatherEngine(this);
         this.weatherAPI = new WeatherAPI(this);
         this.settings = new SettingsManager(this);
+        this.settings.loadSettings();
+        this.storageWidget = new StorageWidget(this);
         this.timeController = new TimeController(this);
+        this.settings.applyAllSettings();
 
         this.init();
     }
